@@ -77,6 +77,22 @@ func ensure_space(deadline_row: int) -> int:
 	return added
 
 
+## 裁剪：总行数超过 max_rows 时，顶部超出的行连同球永久移除，
+## 其余行整体上移（视觉列保持），返回裁掉的行数。
+func trim_top_to(max_rows: int) -> int:
+	var extra := rows - max_rows
+	if extra <= 0:
+		return 0
+	var new_cells := {}
+	for c in cells:
+		if c.y >= extra:
+			var col: int = c.x - HexGrid.q_min(c.y)
+			new_cells[Vector2i(col + HexGrid.q_min(c.y - extra), c.y - extra)] = cells[c]
+	cells = new_cells
+	rows -= extra
+	return extra
+
+
 ## 从 start 出发的相连同色球（含自身）
 func cluster(start: Vector2i) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []

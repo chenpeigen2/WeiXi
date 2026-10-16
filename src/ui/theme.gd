@@ -24,14 +24,14 @@ const ACCENT := Color(1.0, 0.78, 0.30) # 金色
 const DEADLINE := Color(0.95, 0.40, 0.40, 0.75)
 const SELECTION := Color(1, 1, 1, 0.95)
 
-# ---- 布局（720x1280，球半径30） ----
-const SCREEN_W := 720.0
-const SCREEN_H := 1280.0
-const BOARD_TOP := 96.0 # 棋盘顶部（给分数条让位）
-const BOARD_AREA_H := 810.0 # 棋盘可见高度，超出整体缩放
-const BOARD_MARGIN_X := 36.0
-const SHOOTER_POS := Vector2(360, 1010)
-const PICKER_CENTER := Vector2(360, 1120)
-const PICKER_DX := 93.0
-const PICKER_R := 24.0
-const PICKER_HIT_R := 33.0
+# ---- 布局（400x844 手机尺寸，球半径17） ----
+const SCREEN_W := 400.0
+const SCREEN_H := 844.0
+const BOARD_TOP := 56.0 # 棋盘顶部（给分数条让位）
+const BOARD_AREA_H := 560.0 # 棋盘可见高度，超出上滑隐藏并裁剪
+const BOARD_MARGIN_X := 20.0
+const SHOOTER_POS := Vector2(200, 648)
+const PICKER_CENTER := Vector2(200, 738)
+const PICKER_DX := 52.0
+const PICKER_R := 13.0
+const PICKER_HIT_R := 19.0

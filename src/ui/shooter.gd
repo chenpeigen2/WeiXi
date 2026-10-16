@@ -6,7 +6,7 @@ const BallDraw = preload("res://src/ui/ball_draw.gd")
 const FlightPath = preload("res://src/ui/flight_path.gd")
 const Game = preload("res://src/logic/game.gd")
 
-const FLY_SPEED := 2400.0 # 像素/秒
+const FLY_SPEED := 1500.0 # 像素/秒
 const FLY_MIN := 0.08
 const FLY_MAX := 0.45
 
@@ -80,7 +80,7 @@ func _draw() -> void:
 	# 弹道预测：点流 + 落点幽灵球
 	if game.mode == Game.Mode.SHOOT and _flight.is_empty():
 		for pt in _preview_points:
-			draw_circle(pt, 4.0, Color(1, 1, 1, 0.35))
+			draw_circle(pt, 3.0, Color(1, 1, 1, 0.35))
 		if not _preview_points.is_empty():
 			var ghost := Ui.BALL_COLORS[_preview_color]
 			ghost.a = 0.30

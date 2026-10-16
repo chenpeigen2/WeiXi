@@ -41,8 +41,8 @@ func _draw() -> void:
 	# 四角压暗
 	var vignette := Color(0, 0, 0, 0.16)
 	for corner in [Vector2.ZERO, Vector2(Ui.SCREEN_W, 0), Vector2(0, Ui.SCREEN_H), Vector2(Ui.SCREEN_W, Ui.SCREEN_H)]:
-		draw_circle(corner, 300, vignette)
+		draw_circle(corner, 170, vignette)
 	# 顶部微光
 	var glow := Ui.ACCENT
 	glow.a = 0.035
-	draw_circle(Vector2(Ui.SCREEN_W * 0.5, -90), 390, glow)
+	draw_circle(Vector2(Ui.SCREEN_W * 0.5, -60), 220, glow)

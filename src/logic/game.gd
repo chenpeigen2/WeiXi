@@ -10,10 +10,11 @@ enum Mode { SHOOT, MATCH3 }
 
 const WIDTH := 10
 const INITIAL_ROWS := 12
+const MAX_ROWS := 17 # 超过即裁剪顶行（与相机可见容量一致，测试锁定）
 const REFILL_ROWS := 5
 const COLOR_COUNT := 6
 const HINT_THRESHOLD := 10
-const BALL_RADIUS := 30.0
+const BALL_RADIUS := 17.0
 
 var board: RefCounted
 var scorer: RefCounted
@@ -45,10 +46,11 @@ func set_current_color(c: int) -> void:
 	current_color = c
 
 
-## 作弊2：行数滑杆，主动向下加 n 行空位
+## 作弊2：行数滑杆，主动向下加 n 行空位（超出上限裁顶行）
 func add_rows(n: int) -> void:
 	board.extend_rows(n)
 	deadline_row += n
+	deadline_row -= board.trim_top_to(MAX_ROWS)
 
 
 ## 射击模式：球吸附到 cell 后的完整结算
@@ -98,3 +100,4 @@ func _after_board_change() -> void:
 		board.refill_top(REFILL_ROWS, rng, COLOR_COUNT)
 		mode = Mode.SHOOT
 	deadline_row += board.ensure_space(deadline_row)
+	deadline_row -= board.trim_top_to(MAX_ROWS)
