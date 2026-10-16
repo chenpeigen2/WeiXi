@@ -9,13 +9,13 @@ var slider: VSlider
 
 
 func _ready() -> void:
-	position = Vector2(356, 110)
-	size = Vector2(40, 260)
+	position = Vector2(442, 120)
+	size = Vector2(46, 300)
 
 	var label := Label.new()
 	label.text = "加行"
-	label.position = Vector2(2, -24)
-	label.add_theme_font_size_override("font_size", 14)
+	label.position = Vector2(3, -26)
+	label.add_theme_font_size_override("font_size", 15)
 	label.add_theme_color_override("font_color", Ui.TEXT_DIM)
 	add_child(label)
 
@@ -24,7 +24,7 @@ func _ready() -> void:
 	slider.max_value = 5
 	slider.step = 1
 	slider.value = 1
-	slider.size = Vector2(30, 260)
+	slider.size = Vector2(34, 300)
 
 	var bar := StyleBoxFlat.new()
 	bar.bg_color = Color(1, 1, 1, 0.10)

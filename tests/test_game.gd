@@ -42,16 +42,16 @@ func test_attach_without_pop_is_miss() -> void:
 
 func test_cheat_add_rows_extends_board_and_deadline() -> void:
 	var g := Game.new(1)
-	g.add_rows(4) # 作弊2: 行数滑杆, 12+4=16 ≤ 17 不裁剪
-	assert_eq(g.board.rows, 16, "盘+4行")
-	assert_eq(g.deadline_row, 15, "底线同步下移")
+	g.add_rows(4) # 作弊2: 行数滑杆, 12+4=16 > 14 → 裁2行
+	assert_eq(g.board.rows, Game.MAX_ROWS, "超过上限裁到 MAX_ROWS")
+	assert_eq(g.deadline_row, 11 + 4 - 2, "底线=11+加行-裁剪")
 
 
 func test_add_rows_beyond_max_trims_top() -> void:
 	var g := Game.new(1)
-	g.add_rows(10) # 12+10=22 > MAX_ROWS(17) → 裁5行
+	g.add_rows(10) # 12+10=22 > MAX_ROWS(14) → 裁8行
 	assert_eq(g.board.rows, Game.MAX_ROWS, "超过上限裁到 MAX_ROWS")
-	assert_eq(g.deadline_row, 11 + 10 - 5, "底线=11+加行-裁剪")
+	assert_eq(g.deadline_row, 11 + 10 - 8, "底线=11+加行-裁剪")
 
 
 func test_trimmed_balls_vanish_and_rest_stay_anchored() -> void:
@@ -59,11 +59,11 @@ func test_trimmed_balls_vanish_and_rest_stay_anchored() -> void:
 	g.board = Board.new(10, 12)
 	g.deadline_row = 11
 	g.board.set_ball(Vector2i(0, 0), 1) # 顶行, 将被永久移除
-	g.board.set_ball(Vector2i(0, 6), 2) # 在裁剪线之下, 幸存并上移
-	g.add_rows(10) # 12+10=22 > MAX_ROWS(17) → 裁5行
+	g.board.set_ball(Vector2i(0, 9), 2) # 在裁剪线之下, 幸存并上移
+	g.add_rows(10) # 12+10=22 > MAX_ROWS(14) → 裁8行
 	assert_eq(g.board.ball_count(), 1, "顶行球永久消失")
-	# 原(0,6) col=3 → 裁5行后 r=1, q=3+q_min(1)=3
-	assert_eq(g.board.get_color(Vector2i(3, 1)), 2, "幸存球上移且列保持")
+	# 原(0,9) col=4 → 裁8行后 r=1, q=4+q_min(1)=4
+	assert_eq(g.board.get_color(Vector2i(4, 1)), 2, "幸存球上移且列保持")
 
 
 func test_attach_at_deadline_auto_extends() -> void:
@@ -71,9 +71,9 @@ func test_attach_at_deadline_auto_extends() -> void:
 	g.board = Board.new(10, 12)
 	g.board.set_ball(Vector2i(5, 0), 3)
 	g.set_current_color(1)
-	g.attach_ball(Vector2i(0, 11)) # 落点碰到底线, 12+3=15 ≤17 不裁
-	assert_eq(g.board.rows, 15, "自动续3行")
-	assert_eq(g.deadline_row, 14, "底线随之下移")
+	g.attach_ball(Vector2i(0, 11)) # 落点碰到底线, 12+3=15 > 14 → 裁1行
+	assert_eq(g.board.rows, 14, "自动续3行后裁剪到上限")
+	assert_eq(g.deadline_row, 13, "底线=11+3-1")
 
 
 

@@ -10,11 +10,11 @@ enum Mode { SHOOT, MATCH3 }
 
 const WIDTH := 10
 const INITIAL_ROWS := 12
-const MAX_ROWS := 17 # 超过即裁剪顶行（与相机可见容量一致，测试锁定）
+const MAX_ROWS := 14 # 超过即裁剪顶行（与相机可见容量一致，测试锁定）
 const REFILL_ROWS := 5
 const COLOR_COUNT := 6
 const HINT_THRESHOLD := 10
-const BALL_RADIUS := 17.0
+const BALL_RADIUS := 22.0
 
 var board: RefCounted
 var scorer: RefCounted

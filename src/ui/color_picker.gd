@@ -34,11 +34,11 @@ func set_current(c: int) -> void:
 
 
 func _draw() -> void:
-	var rect := Rect2(pos_of(0) - Vector2(28, 26), Vector2(Ui.PICKER_DX * 5 + 56, 52))
+	var rect := Rect2(pos_of(0) - Vector2(33, 30), Vector2(Ui.PICKER_DX * 5 + 66, 60))
 	draw_style_box(_panel, rect)
 	for i in range(Ui.BALL_COLORS.size()):
 		var p := pos_of(i)
 		var r := Ui.PICKER_R * (1.15 if i == current else 1.0)
 		BallDraw.draw_ball(self, p, r, Ui.BALL_COLORS[i])
 		if i == current:
-			draw_arc(p, r + 4, 0, TAU, 40, Ui.ACCENT, 2.5, true)
+			draw_arc(p, r + 5, 0, TAU, 40, Ui.ACCENT, 3.0, true)
