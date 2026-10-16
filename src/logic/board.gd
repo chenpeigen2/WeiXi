@@ -58,7 +58,28 @@ func cluster(start: Vector2i) -> Array[Vector2i]:
 	return out
 
 
-## 新球吸附到 cell 后结算：相连同色 >=3 消除。
+## 与顶行(r=0)失去连接的所有球
+func floating() -> Array[Vector2i]:
+	var seen := {}
+	var stack: Array[Vector2i] = []
+	for c in cells:
+		if c.y == 0:
+			seen[c] = true
+			stack.append(c)
+	while not stack.is_empty():
+		var c: Vector2i = stack.pop_back()
+		for n in HexGrid.neighbors(c):
+			if cells.has(n) and not seen.has(n):
+				seen[n] = true
+				stack.append(n)
+	var out: Array[Vector2i] = []
+	for c in cells:
+		if not seen.has(c):
+			out.append(c)
+	return out
+
+
+## 新球吸附到 cell 后结算：相连同色 >=3 消除，失去支撑的悬空球掉落。
 ## 返回 {"popped": Array[Vector2i], "dropped": Array[Vector2i]}
 func resolve_at(cell: Vector2i) -> Dictionary:
 	var result: Dictionary = {"popped": [], "dropped": []}
@@ -67,4 +88,8 @@ func resolve_at(cell: Vector2i) -> Dictionary:
 		for c in cl:
 			remove_ball(c)
 		result["popped"] = cl
+		var fl := floating()
+		for c in fl:
+			remove_ball(c)
+		result["dropped"] = fl
 	return result
