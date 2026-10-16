@@ -15,6 +15,11 @@ config/icon="res://icon.png"
 config/description="玩不死的泡泡龙：泡泡龙射击消除 + 经典三消融合"
 run/main_scene="res://src/scenes/main.tscn"
 
+[gui]
+
+theme/custom_font="res://fonts/ZCOOLKuaiLe-Regular.ttf"
+theme/default_font_size=18
+
 [display]
 
 window/size/viewport_width=750
