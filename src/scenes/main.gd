@@ -102,13 +102,12 @@ func _on_click(pos: Vector2) -> void:
 func _fire() -> void:
 	if shooter.is_flying():
 		return
-	var o := _cam_origin()
-	var trace: Dictionary = Trajectory.trace_path(game.board, game.layout, BoardCamera.to_board(Ui.SHOOTER_POS, 1.0, o), shooter.aim_dir, game.board.width * game.layout.diameter)
-	var cell: Vector2i = trace["cell"]
-	if cell == INVALID_CELL:
+	var tr := _trace_screen()
+	if tr["cell"] == INVALID_CELL:
 		return
+	var cell: Vector2i = tr["cell"]
 	var before: Dictionary = game.board.cells.duplicate()
-	shooter.start_flight(Ui.SHOOTER_POS, BoardCamera.to_screen(game.layout.cell_to_pixel(cell), 1.0, o), game.current_color, func() -> void:
+	shooter.start_flight(tr["path"], game.current_color, func() -> void:
 		var res: Dictionary = game.attach_ball(cell)
 		_spawn_effects(res, before)
 		selected = INVALID_CELL
@@ -143,22 +142,33 @@ func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 		fx_layer.spawn_drop(pos, game.layout.radius, Ui.BALL_COLORS[before.get(c, 0)])
 
 
-# ---------- 弹道预览 ----------
+# ---------- 弹道（预览与飞行共用同一条折线） ----------
 
-func _update_preview() -> void:
-	if game.mode != Game.Mode.SHOOT or shooter.is_flying():
-		shooter.set_preview(PackedVector2Array(), Vector2.ZERO, 0)
-		return
+func _trace_screen() -> Dictionary:
 	var o := _cam_origin()
 	var trace: Dictionary = Trajectory.trace_path(game.board, game.layout, BoardCamera.to_board(Ui.SHOOTER_POS, 1.0, o), shooter.aim_dir, game.board.width * game.layout.diameter)
 	var pts := PackedVector2Array()
+	pts.append(Ui.SHOOTER_POS)
 	for p in trace["points"]:
 		pts.append(BoardCamera.to_screen(p, 1.0, o))
 	var target := Vector2.ZERO
 	if trace["cell"] != INVALID_CELL:
 		target = BoardCamera.to_screen(game.layout.cell_to_pixel(trace["cell"]), 1.0, o)
 		pts.append(target)
-	shooter.set_preview(pts, target, game.current_color)
+	return {"cell": trace["cell"], "path": pts, "target": target}
+
+
+func _update_preview() -> void:
+	if game.mode != Game.Mode.SHOOT or shooter.is_flying():
+		shooter.set_preview(PackedVector2Array(), Vector2.ZERO, 0)
+		return
+	var tr := _trace_screen()
+	if tr["cell"] == INVALID_CELL:
+		shooter.set_preview(PackedVector2Array(), Vector2.ZERO, 0)
+		return
+	var pts: PackedVector2Array = tr["path"]
+	pts.remove_at(0) # 预览点流不含发射器中心
+	shooter.set_preview(pts, tr["target"], game.current_color)
 
 
 # ---------- HUD 回调 ----------

@@ -3,14 +3,17 @@ extends Node2D
 
 const Ui = preload("res://src/ui/theme.gd")
 const BallDraw = preload("res://src/ui/ball_draw.gd")
+const FlightPath = preload("res://src/ui/flight_path.gd")
 const Game = preload("res://src/logic/game.gd")
 
-const FLY_TIME := 0.16
+const FLY_SPEED := 2400.0 # 像素/秒
+const FLY_MIN := 0.08
+const FLY_MAX := 0.45
 
 var game: RefCounted
 var aim_dir := Vector2.UP
 
-var _flight: Dictionary = {} # {from,to,pos,t,color,cb}
+var _flight: Dictionary = {} # {path,total,d,speed,pos,color,cb}
 var _preview_points := PackedVector2Array()
 var _preview_target := Vector2.ZERO
 var _preview_color := 0
@@ -42,20 +45,25 @@ func is_flying() -> bool:
 	return not _flight.is_empty()
 
 
-func start_flight(from_pos: Vector2, to_pos: Vector2, color: int, on_finished: Callable) -> void:
-	_flight = {"from": from_pos, "to": to_pos, "pos": from_pos, "t": 0.0, "color": color, "cb": on_finished}
+## 沿真实弹道折线飞行（与预览点流完全一致，含弹墙拐弯）
+func start_flight(path: PackedVector2Array, color: int, on_finished: Callable) -> void:
+	if path.is_empty():
+		return
+	var total := FlightPath.length(path)
+	var duration: float = clamp(total / FLY_SPEED, FLY_MIN, FLY_MAX)
+	_flight = {"path": path, "total": total, "d": 0.0, "speed": total / duration, "pos": path[0], "color": color, "cb": on_finished}
 
 
 func _process(delta: float) -> void:
 	if _flight.is_empty():
 		return
-	_flight["t"] += delta / FLY_TIME
-	if _flight["t"] >= 1.0:
+	_flight["d"] += _flight["speed"] * delta
+	if _flight["d"] >= _flight["total"]:
 		var cb: Callable = _flight["cb"]
 		_flight = {}
 		cb.call()
 	else:
-		_flight["pos"] = _flight["from"].lerp(_flight["to"], _flight["t"])
+		_flight["pos"] = FlightPath.sample(_flight["path"], _flight["d"])
 	queue_redraw()
 
 
