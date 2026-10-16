@@ -95,6 +95,58 @@ func cluster(start: Vector2i) -> Array[Vector2i]:
 	return out
 
 
+## 穿过 cell 沿 dir 轴向的同色连线（含自身）
+func line_through(cell: Vector2i, dir: Vector2i) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	var color: int = cells.get(cell, -1)
+	if color == -1:
+		return out
+	out.append(cell)
+	for s in [1, -1]:
+		var c: Vector2i = cell + dir * s
+		while cells.get(c, -1) == color:
+			out.append(c)
+			c += dir * s
+	return out
+
+
+## 三消模式：互换两个相邻球。若互换后穿过两球的任一三轴连线 >=3 则消除，
+## 并结算悬空掉落；否则自动换回。
+## 返回 {"matched": bool, "popped": Array[Vector2i], "dropped": Array[Vector2i]}
+func swap(a: Vector2i, b: Vector2i) -> Dictionary:
+	var result: Dictionary = {"matched": false, "popped": [], "dropped": []}
+	if not has_ball(a) or not has_ball(b):
+		return result
+	if not HexGrid.neighbors(a).has(b):
+		return result
+	var tmp: int = cells[a]
+	cells[a] = cells[b]
+	cells[b] = tmp
+	var matched := {}
+	for cell in [a, b]:
+		for d in HexGrid.LINE_DIRS:
+			var line := line_through(cell, d)
+			if line.size() >= 3:
+				for c in line:
+					matched[c] = true
+	if matched.is_empty():
+		tmp = cells[a]
+		cells[a] = cells[b]
+		cells[b] = tmp
+		return result
+	result["matched"] = true
+	var popped: Array[Vector2i] = []
+	for c in matched.keys():
+		remove_ball(c)
+		popped.append(c)
+	result["popped"] = popped
+	var fl := floating()
+	for c in fl:
+		remove_ball(c)
+	result["dropped"] = fl
+	return result
+
+
 ## 与顶行(r=0)失去连接的所有球
 func floating() -> Array[Vector2i]:
 	var seen := {}
