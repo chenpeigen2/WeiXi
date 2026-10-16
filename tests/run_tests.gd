@@ -30,6 +30,9 @@ func _init() -> void:
 			total += 1
 			var inst: RefCounted = script.new()
 			inst.call(method_name)
+			# GDScript 运行时错误会中断测试函数但不进 failures, 用断言数兜底识别
+			if inst.assert_count == 0:
+				inst.failures.append("断言数为0, 疑似运行时错误中断(见上方 SCRIPT ERROR)")
 			for failure in inst.failures:
 				printerr("[%s::%s] %s" % [path.get_file(), method_name, failure])
 			if not inst.failures.is_empty():

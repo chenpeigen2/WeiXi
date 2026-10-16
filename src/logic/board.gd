@@ -3,6 +3,9 @@ extends RefCounted
 
 const HexGrid = preload("res://src/logic/hex_grid.gd")
 
+## 触底自动续行的单次幅度
+const EXTEND_CHUNK := 3
+
 var width: int
 var rows: int
 var cells: Dictionary = {} # Vector2i -> int(颜色)
@@ -38,6 +41,28 @@ func remove_ball(cell: Vector2i) -> void:
 
 func ball_count() -> int:
 	return cells.size()
+
+
+## 底部增加 n 行空位（永不超线：底线随盘面向下推移）
+func extend_rows(n: int) -> void:
+	rows += n
+
+
+func lowest_occupied_row() -> int:
+	var lowest := -1
+	for c in cells:
+		if c.y > lowest:
+			lowest = c.y
+	return lowest
+
+
+## 保证最低球不碰到 deadline_row：不足就按 EXTEND_CHUNK 续行，返回续的行数
+func ensure_space(deadline_row: int) -> int:
+	var added := 0
+	while lowest_occupied_row() >= deadline_row + added:
+		added += EXTEND_CHUNK
+	rows += added
+	return added
 
 
 ## 从 start 出发的相连同色球（含自身）
