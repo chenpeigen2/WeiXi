@@ -1,5 +1,5 @@
 extends Node2D
-## 棋盘视图：玻璃面板背板 + 全部球 + 三消选中环 + 安全虚线。
+## 棋盘视图：玻璃面板背板 + 全部球（顶部滑出隐藏）+ 三消选中环 + 发光安全线。
 
 const Ui = preload("res://src/ui/theme.gd")
 const BallDraw = preload("res://src/ui/ball_draw.gd")
@@ -21,12 +21,15 @@ func _ready() -> void:
 	_panel.set_corner_radius_all(20)
 
 
+func cam_origin() -> Vector2:
+	return BoardCamera.origin_for(game.board.rows, game.layout.row_height, game.layout.diameter, game.board.width * game.layout.diameter)
+
+
 func _draw() -> void:
 	if game == null:
 		return
 	var layout = game.layout
-	var s := BoardCamera.scale_for(game.board.rows, layout.row_height, layout.diameter)
-	var origin := BoardCamera.origin_for(s, game.board.width * layout.diameter)
+	var origin := cam_origin()
 
 	# 背板
 	draw_style_box(_panel, Rect2(
@@ -36,21 +39,26 @@ func _draw() -> void:
 		Ui.BOARD_AREA_H + 20
 	))
 
-	# 球
-	var r: float = layout.radius * s
+	# 球（滑出顶部的行隐藏不画）
+	var r: float = layout.radius
 	for cell in game.board.cells:
-		var pos: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(cell), s, origin)
+		var pos: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(cell), 1.0, origin)
+		if pos.y < Ui.BOARD_TOP - r:
+			continue
 		BallDraw.draw_ball(self, pos, r * 0.95, Ui.BALL_COLORS[game.board.get_color(cell)])
 
 	# 三消选中环
 	if selected != INVALID_CELL and game.board.has_ball(selected):
-		var pos: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(selected), s, origin)
-		draw_arc(pos, r * 1.05, 0, TAU, 40, Ui.SELECTION, 2.5, true)
+		var pos: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(selected), 1.0, origin)
+		draw_arc(pos, r * 1.05, 0, TAU, 40, Ui.SELECTION, 3.5, true)
 
-	# 安全虚线（非死亡线，触底自动续行）
-	var line_y: float = BoardCamera.to_screen(Vector2(0, (game.deadline_row + 1) * layout.row_height), s, origin).y
-	draw_dashed_line(
-		Vector2(Ui.BOARD_MARGIN_X, line_y),
-		Vector2(Ui.SCREEN_W - Ui.BOARD_MARGIN_X, line_y),
-		Ui.DEADLINE, 2.0, 10.0
-	)
+	# 发光安全线（非死亡线，触底自动续行上滑）
+	var line_y: float = BoardCamera.to_screen(Vector2(0, (game.deadline_row + 1) * layout.row_height), 1.0, origin).y
+	var x0 := Ui.BOARD_MARGIN_X
+	var x1 := Ui.SCREEN_W - Ui.BOARD_MARGIN_X
+	var glow := Ui.DEADLINE
+	glow.a = 0.10
+	draw_line(Vector2(x0, line_y), Vector2(x1, line_y), glow, 8.0)
+	glow.a = 0.25
+	draw_line(Vector2(x0, line_y), Vector2(x1, line_y), glow, 4.0)
+	draw_dashed_line(Vector2(x0, line_y), Vector2(x1, line_y), Ui.DEADLINE, 2.0, 12.0)

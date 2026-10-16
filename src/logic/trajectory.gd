@@ -8,8 +8,19 @@ const MAX_STEPS := 20000
 
 ## 返回吸附格。from/dir 为像素坐标与方向，board_pixel_width 为盘面像素宽。
 static func find_attach_cell(board, layout, from: Vector2, dir: Vector2, board_pixel_width: float) -> Vector2i:
+	return _simulate(board, layout, from, dir, board_pixel_width, 0)["cell"]
+
+
+## 弹道预览：返回 {"cell": 吸附格, "points": 路径采样点(最多 max_points 个 + 终点)}
+static func trace_path(board, layout, from: Vector2, dir: Vector2, board_pixel_width: float, max_points := 40) -> Dictionary:
+	return _simulate(board, layout, from, dir, board_pixel_width, max_points)
+
+
+static func _simulate(board, layout, from: Vector2, dir: Vector2, board_pixel_width: float, max_points: int) -> Dictionary:
+	var points := PackedVector2Array()
 	var pos := from
 	var vel: Vector2 = dir.normalized() * (layout.radius * 0.25)
+	var cell := Vector2i(-999, -999)
 	for i in range(MAX_STEPS):
 		pos += vel
 		# 侧墙反弹（球心活动范围 [R, 宽-R]）
@@ -19,17 +30,28 @@ static func find_attach_cell(board, layout, from: Vector2, dir: Vector2, board_p
 		elif pos.x > board_pixel_width - layout.radius:
 			pos.x = 2.0 * (board_pixel_width - layout.radius) - pos.x
 			vel.x = -vel.x
+		# 路径采样
+		if max_points > 0 and i % 5 == 0 and points.size() < max_points:
+			points.append(pos)
 		# 碰顶：吸附到顶行最近空格
 		if pos.y <= 0.0:
-			return _nearest_empty_in_row(board, layout, pos, 0)
+			cell = _nearest_empty_in_row(board, layout, pos, 0)
+			break
 		# 碰球：吸附到该球最近的空邻格
 		var near: Vector2i = layout.pixel_to_cell(pos)
 		var candidates: Array[Vector2i] = [near]
 		candidates.append_array(HexGrid.neighbors(near))
+		var hit := false
 		for c in candidates:
 			if board.has_ball(c) and layout.cell_to_pixel(c).distance_to(pos) < layout.diameter * 0.85:
-				return _nearest_empty_neighbor(board, layout, c, pos)
-	return Vector2i(-999, -999) # 兜底，不应到达
+				cell = _nearest_empty_neighbor(board, layout, c, pos)
+				hit = true
+				break
+		if hit:
+			break
+	if max_points > 0:
+		points.append(pos)
+	return {"cell": cell, "points": points}
 
 
 static func _nearest_empty_in_row(board, layout, pos: Vector2, r: int) -> Vector2i:

@@ -1,5 +1,5 @@
 extends Control
-## 作弊2·加行滑杆：竖向拖动 1~5 行，松手生效并自动复位。
+## 作弊2·加行滑杆：竖向拖动 1~5 行，松手生效并自动复位。金色滑块。
 
 const Ui = preload("res://src/ui/theme.gd")
 
@@ -25,6 +25,18 @@ func _ready() -> void:
 	slider.step = 1
 	slider.value = 1
 	slider.size = Vector2(48, 450)
+
+	var bar := StyleBoxFlat.new()
+	bar.bg_color = Color(1, 1, 1, 0.10)
+	bar.set_corner_radius_all(6)
+	slider.add_theme_stylebox_override("slider", bar)
+
+	var grab := StyleBoxFlat.new()
+	grab.bg_color = Ui.ACCENT
+	grab.set_corner_radius_all(10)
+	slider.add_theme_stylebox_override("grabber_area", grab)
+	slider.add_theme_stylebox_override("grabber_area_highlight", grab)
+
 	slider.drag_ended.connect(_on_drag_ended)
 	add_child(slider)
 
