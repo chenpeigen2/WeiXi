@@ -42,13 +42,13 @@ func set_current_color(c: int) -> void:
 	current_color = c
 
 
-## 作弊1快捷手势：双击棋盘上已射出的球，该球颜色循环+1，
+## 作弊1快捷手势：双击棋盘上已射出的球，弹出调色板换成任意颜色，
 ## 若形成 >=3 相连同色立即消除计分
-func cycle_ball_color(cell: Vector2i) -> Dictionary:
+func set_ball_color(cell: Vector2i, color: int) -> Dictionary:
 	var res: Dictionary = {"popped": [], "dropped": [], "overflow": []}
 	if not board.has_ball(cell):
 		return res
-	board.cells[cell] = (board.get_color(cell) + 1) % COLOR_COUNT
+	board.cells[cell] = color
 	res = board.resolve_at(cell)
 	if not res["popped"].is_empty():
 		scorer.register_clear(res["popped"].size(), res["dropped"].size())

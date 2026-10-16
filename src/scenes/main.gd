@@ -14,6 +14,7 @@ const ScorePanel = preload("res://src/ui/score_panel.gd")
 const RowSlider = preload("res://src/ui/row_slider.gd")
 const Background = preload("res://src/ui/background.gd")
 const FxLayer = preload("res://src/ui/fx_layer.gd")
+const BallColorPopup = preload("res://src/ui/ball_color_popup.gd")
 
 const INVALID_CELL := Vector2i(-999, -999)
 const DRAG_THRESHOLD := 8.0
@@ -25,6 +26,7 @@ var board_view: Node2D
 var shooter: Node2D
 var picker: Node2D
 var fx_layer: Node2D
+var color_popup: Node2D
 var score_panel: Control
 var hint_label: Label
 var row_slider: Control
@@ -46,6 +48,8 @@ func _ready() -> void:
 	add_child(picker)
 	fx_layer = _make(FxLayer, "FxLayer")
 	add_child(fx_layer)
+	color_popup = _make(BallColorPopup, "ColorPopup")
+	add_child(color_popup)
 
 	var hud := CanvasLayer.new()
 	hud.name = "HUD"
@@ -107,16 +111,30 @@ func _process(_delta: float) -> void:
 		hint_label.modulate = Color.WHITE.lerp(Color(1, 0.6, 0.4), 0.5 + 0.5 * sin(Time.get_ticks_msec() / 200.0))
 
 
-## 作弊1：双击棋盘上已射出的球 → 该球颜色循环+1（凑三连即消）
+## 作弊1：双击棋盘上已射出的球 → 弹出调色板选任意颜色
+var _popup_cell := INVALID_CELL
+
+
 func _try_cycle_board_ball(pos: Vector2) -> void:
 	if fx_layer.is_swapping():
 		return
 	var c: Vector2i = game.layout.pixel_to_cell(BoardCamera.to_board(pos, 1.0, _cam_origin()))
 	if not game.board.has_ball(c):
 		return
-	var before: Dictionary = game.board.cells.duplicate()
-	var res: Dictionary = game.cycle_ball_color(c)
 	selected = INVALID_CELL
+	_popup_cell = c
+	color_popup.open_at(pos)
+	refresh()
+
+
+func _apply_popup_tap(pos: Vector2) -> void:
+	var i: int = color_popup.hit(pos)
+	color_popup.close()
+	if i < 0:
+		return # 点外取消
+	var before: Dictionary = game.board.cells.duplicate()
+	var res: Dictionary = game.set_ball_color(_popup_cell, i)
+	_popup_cell = INVALID_CELL
 	if not res["popped"].is_empty():
 		_spawn_effects(res, before)
 	refresh()
@@ -136,6 +154,10 @@ func _on_release(pos: Vector2) -> void:
 
 
 func _on_tap(pos: Vector2) -> void:
+	# 调色板打开时优先：选色或点外取消
+	if color_popup.active:
+		_apply_popup_tap(pos)
+		return
 	# 作弊1：颜色选择条优先命中
 	var i := BallPicker.hit(pos)
 	if i >= 0:

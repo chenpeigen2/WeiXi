@@ -102,27 +102,24 @@ func test_hint_match3_when_few_balls() -> void:
 	assert_true(g.should_hint_match3(), "8球提示")
 
 
-func test_cycle_board_ball_color() -> void:
+func test_set_board_ball_color() -> void:
 	var g := Game.new(1)
 	g.board = Board.new(10, Game.MAX_ROWS)
 	g.board.set_ball(Vector2i(5, 0), 3)
-	g.cycle_ball_color(Vector2i(5, 0))
-	assert_eq(g.board.get_color(Vector2i(5, 0)), 4, "颜色+1")
-	g.cycle_ball_color(Vector2i(5, 0))
-	g.cycle_ball_color(Vector2i(5, 0))
-	assert_eq(g.board.get_color(Vector2i(5, 0)), 0, "3+3=6 绕回到0")
-	g.cycle_ball_color(Vector2i(5, 0))
-	assert_eq(g.board.get_color(Vector2i(5, 0)), 1, "再+1")
-	var res: Dictionary = g.cycle_ball_color(Vector2i(9, 9))
+	g.set_ball_color(Vector2i(5, 0), 0)
+	assert_eq(g.board.get_color(Vector2i(5, 0)), 0, "改成指定的颜色")
+	g.set_ball_color(Vector2i(5, 0), 5)
+	assert_eq(g.board.get_color(Vector2i(5, 0)), 5, "任意颜色")
+	var res: Dictionary = g.set_ball_color(Vector2i(9, 9), 2)
 	assert_eq(res["popped"].size(), 0, "空格安全")
 
 
-func test_cycle_board_ball_triggers_match_and_scores() -> void:
+func test_set_board_ball_color_triggers_match_and_scores() -> void:
 	var g := Game.new(1)
 	g.board = Board.new(10, Game.MAX_ROWS)
 	g.board.set_ball(Vector2i(0, 0), 1)
 	g.board.set_ball(Vector2i(1, 0), 1)
-	g.board.set_ball(Vector2i(0, 1), 0) # 双击后 0→1, 三连红
-	var res: Dictionary = g.cycle_ball_color(Vector2i(0, 1))
+	g.board.set_ball(Vector2i(0, 1), 4) # 改成1即三连红
+	var res: Dictionary = g.set_ball_color(Vector2i(0, 1), 1)
 	assert_eq(res["popped"].size(), 3, "换色形成三连即消")
 	assert_eq(g.scorer.score, 30, "计分")
