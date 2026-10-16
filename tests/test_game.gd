@@ -7,7 +7,6 @@ const Board = preload("res://src/logic/board.gd")
 func test_new_game_initial_state() -> void:
 	var g := Game.new(1)
 	assert_eq(g.board.ball_count(), 50, "开局5行")
-	assert_eq(g.mode, Game.Mode.SHOOT, "默认射击模式")
 	assert_eq(g.deadline_row, Game.MAX_ROWS - 1, "底线固定在最底可见行")
 	assert_eq(g.board.rows, Game.MAX_ROWS, "棋盘容量固定")
 	assert_eq(g.scorer.score, 0)
@@ -27,7 +26,6 @@ func test_cheat_set_color_and_attach_pop_scores() -> void:
 	assert_eq(res["popped"].size(), 3, "三消")
 	assert_eq(g.scorer.score, 30, "(3*10+0)*1")
 	assert_eq(g.current_color, old_next, "当前球轮转")
-	assert_eq(g.mode, Game.Mode.SHOOT)
 
 
 func test_attach_without_pop_is_miss() -> void:
@@ -70,34 +68,29 @@ func test_attach_at_deadline_overflows_and_drops() -> void:
 
 
 
-func test_swap_clear_all_refills_and_returns_shoot_mode() -> void:
+func test_swap_clear_all_refills() -> void:
 	var g := Game.new(1)
 	g.board = Board.new(10, 12)
 	g.board.set_ball(Vector2i(0, 1), 1)
 	g.board.set_ball(Vector2i(1, 1), 1)
 	g.board.set_ball(Vector2i(2, 1), 2)
 	g.board.set_ball(Vector2i(2, 2), 1)
-	g.toggle_mode()
-	assert_eq(g.mode, Game.Mode.MATCH3)
 	var res: Dictionary = g.try_swap(Vector2i(2, 1), Vector2i(2, 2))
 	assert_true(res["matched"])
-	# 3红消除 + (2,2)蓝悬空掉落 → 全场清空 → 自动补5行 + 切回射击
+	# 3红消除 + (2,2)蓝悬空掉落 → 全场清空 → 自动补5行
 	assert_eq(g.board.ball_count(), 50, "清空自动补5行")
-	assert_eq(g.mode, Game.Mode.SHOOT, "切回射击模式")
 	assert_true(g.scorer.score > 0, "三消也计分")
 
 
-func test_failed_swap_keeps_score_and_mode() -> void:
+func test_failed_swap_keeps_score() -> void:
 	var g := Game.new(1)
 	g.board = Board.new(10, 12)
 	g.board.set_ball(Vector2i(0, 0), 3)
 	g.board.set_ball(Vector2i(0, 1), 1)
 	g.board.set_ball(Vector2i(1, 1), 2)
-	g.toggle_mode()
 	var res: Dictionary = g.try_swap(Vector2i(0, 1), Vector2i(1, 1))
 	assert_false(res["matched"])
 	assert_eq(g.scorer.score, 0)
-	assert_eq(g.mode, Game.Mode.MATCH3)
 
 
 func test_hint_match3_when_few_balls() -> void:
@@ -107,5 +100,13 @@ func test_hint_match3_when_few_balls() -> void:
 	for i in range(8):
 		g.board.set_ball(Vector2i(i, 0), i % 6)
 	assert_true(g.should_hint_match3(), "8球提示")
-	g.toggle_mode()
-	assert_false(g.should_hint_match3(), "三消模式下不提示")
+
+
+func test_cycle_current_color() -> void:
+	var g := Game.new(1)
+	g.set_current_color(2)
+	g.cycle_current_color()
+	assert_eq(g.current_color, 3, "循环到下一色")
+	g.set_current_color(5)
+	g.cycle_current_color()
+	assert_eq(g.current_color, 0, "绕回第一色")

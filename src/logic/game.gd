@@ -6,8 +6,6 @@ const Scorer = preload("res://src/logic/scorer.gd")
 const HexLayout = preload("res://src/logic/hex_layout.gd")
 const Trajectory = preload("res://src/logic/trajectory.gd")
 
-enum Mode { SHOOT, MATCH3 }
-
 const WIDTH := 10
 const MAX_ROWS := 14 # 固定容量（与相机可见容量一致，测试锁定）
 const REFILL_ROWS := 5
@@ -19,7 +17,6 @@ var board: RefCounted
 var scorer: RefCounted
 var layout: RefCounted
 var rng: RandomNumberGenerator
-var mode := Mode.SHOOT
 var current_color := 0
 var next_color := 0
 var deadline_row := MAX_ROWS - 1 # 固定底线
@@ -43,6 +40,11 @@ func _rand_color() -> int:
 ## 作弊1：自由换当前球颜色
 func set_current_color(c: int) -> void:
 	current_color = c
+
+
+## 作弊1快捷手势：长按当前球，循环切换到下一个颜色
+func cycle_current_color() -> void:
+	current_color = (current_color + 1) % COLOR_COUNT
 
 
 ## 作弊2：掉落滑杆，手动把最低 n 个占用行的球捅掉
@@ -70,13 +72,9 @@ func try_swap(a: Vector2i, b: Vector2i) -> Dictionary:
 	return res
 
 
-func toggle_mode() -> void:
-	mode = Mode.MATCH3 if mode == Mode.SHOOT else Mode.SHOOT
-
-
 ## 剩余球很少时提示可切三消（仅射击模式下提示）
 func should_hint_match3() -> bool:
-	return mode == Mode.SHOOT and board.ball_count() <= HINT_THRESHOLD
+	return board.ball_count() <= HINT_THRESHOLD
 
 
 ## 瞄准发射：求吸附格（表现层据此做动画，再调 attach_ball）
@@ -95,6 +93,5 @@ func _after_board_change(res: Dictionary) -> void:
 	if board.is_empty():
 		# 清空自动补球并切回射击模式（玩不死：永远有球可打）
 		board.refill_top(REFILL_ROWS, rng, COLOR_COUNT)
-		mode = Mode.SHOOT
 	# 触底掉落：到达底线的最低行球掉出，腾出空间
 	res["overflow"] = board.drop_overflow(deadline_row)

@@ -13,7 +13,7 @@ func _instantiate_main() -> Node:
 
 func test_main_scene_components_exist() -> void:
 	var node := _instantiate_main()
-	for p in ["Background", "BoardView", "Shooter", "ColorPicker", "HUD/ScorePanel", "HUD/ModeButton", "HUD/RowSlider"]:
+	for p in ["Background", "BoardView", "Shooter", "ColorPicker", "FxLayer", "HUD/ScorePanel", "HUD/HintLabel", "HUD/RowSlider"]:
 		assert_true(node.get_node_or_null(p) != null, "存在组件 %s" % p)
 	node.free()
 

@@ -4,7 +4,6 @@ extends Node2D
 const Ui = preload("res://src/ui/theme.gd")
 const BallDraw = preload("res://src/ui/ball_draw.gd")
 const FlightPath = preload("res://src/ui/flight_path.gd")
-const Game = preload("res://src/logic/game.gd")
 
 const FLY_SPEED := 2700.0 # 像素/秒
 const FLY_MIN := 0.08
@@ -78,7 +77,7 @@ func _draw() -> void:
 	draw_arc(p, r * 1.5, PI, TAU, 24, Ui.ACCENT.darkened(0.15), 4.0, true)
 
 	# 弹道预测：点流 + 落点幽灵球
-	if game.mode == Game.Mode.SHOOT and _flight.is_empty():
+	if _flight.is_empty():
 		for pt in _preview_points:
 			draw_circle(pt, 5.0, Color(1, 1, 1, 0.35))
 		if not _preview_points.is_empty():

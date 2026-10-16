@@ -1,20 +1,23 @@
 extends Node2D
 ## 编排层：装配 UI 组件、转发输入、同步游戏状态。规则全在 src/logic，绘制全在 src/ui。
+## 融合操作（无模式）：点球=三消互换，点空位/拖拽=发射，长按当前球=循环换色。
 
 const Game = preload("res://src/logic/game.gd")
 const Trajectory = preload("res://src/logic/trajectory.gd")
+const HexGrid = preload("res://src/logic/hex_grid.gd")
 const Ui = preload("res://src/ui/theme.gd")
 const BoardCamera = preload("res://src/ui/board_camera.gd")
 const BoardView = preload("res://src/ui/board_view.gd")
 const Shooter = preload("res://src/ui/shooter.gd")
 const BallPicker = preload("res://src/ui/color_picker.gd")
 const ScorePanel = preload("res://src/ui/score_panel.gd")
-const ModeButton = preload("res://src/ui/mode_button.gd")
 const RowSlider = preload("res://src/ui/row_slider.gd")
 const Background = preload("res://src/ui/background.gd")
 const FxLayer = preload("res://src/ui/fx_layer.gd")
 
 const INVALID_CELL := Vector2i(-999, -999)
+const LONG_PRESS_MS := 400
+const DRAG_THRESHOLD := 8.0
 
 var game: RefCounted
 var selected := INVALID_CELL
@@ -24,8 +27,10 @@ var shooter: Node2D
 var picker: Node2D
 var fx_layer: Node2D
 var score_panel: Control
-var mode_button: Button
+var hint_label: Label
 var row_slider: Control
+
+var _press := {} # {pos,time,on_shooter,consumed,dragging}
 
 
 func _ready() -> void:
@@ -48,9 +53,13 @@ func _ready() -> void:
 	add_child(hud)
 	score_panel = _make(ScorePanel, "ScorePanel")
 	hud.add_child(score_panel)
-	mode_button = _make(ModeButton, "ModeButton")
-	mode_button.pressed.connect(_on_mode_pressed)
-	hud.add_child(mode_button)
+	hint_label = Label.new()
+	hint_label.name = "HintLabel"
+	hint_label.text = "点两个相邻球互换!"
+	hint_label.position = Vector2(505, 30)
+	hint_label.add_theme_font_size_override("font_size", 24)
+	hint_label.add_theme_color_override("font_color", Ui.ACCENT)
+	hud.add_child(hint_label)
 	row_slider = _make(RowSlider, "RowSlider")
 	row_slider.rows_dropped.connect(_on_rows_dropped)
 	hud.add_child(row_slider)
@@ -71,33 +80,73 @@ func refresh() -> void:
 	shooter.queue_redraw()
 	picker.set_current(game.current_color)
 	score_panel.set_score(game.scorer.score, game.scorer.combo)
-	mode_button.set_shoot_mode(game.mode == Game.Mode.SHOOT)
-	mode_button.set_hint(game.should_hint_match3())
+	hint_label.visible = game.should_hint_match3()
 	_update_preview()
 
 
-# ---------- 输入路由 ----------
+# ---------- 输入路由（点按/拖拽/长按） ----------
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		shooter.set_aim(event.position - Ui.SHOOTER_POS)
 		_update_preview()
-	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_on_click(event.position)
+		if not _press.is_empty() and event.position.distance_to(_press["pos"]) > DRAG_THRESHOLD:
+			_press["dragging"] = true
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_press = {
+				"pos": event.position,
+				"time": Time.get_ticks_msec(),
+				"on_shooter": event.position.distance_to(Ui.SHOOTER_POS) <= game.layout.radius * 1.5,
+				"consumed": false,
+				"dragging": false,
+			}
+		else:
+			_on_release(event.position)
 
 
-func _on_click(pos: Vector2) -> void:
+func _process(_delta: float) -> void:
+	# 长按当前球 → 循环换色
+	if not _press.is_empty() and not _press["consumed"] and _press["on_shooter"]:
+		if Time.get_ticks_msec() - _press["time"] >= LONG_PRESS_MS:
+			game.cycle_current_color()
+			_press["consumed"] = true
+			refresh()
+	# 提示闪烁
+	if hint_label.visible:
+		hint_label.modulate = Color.WHITE.lerp(Color(1, 0.6, 0.4), 0.5 + 0.5 * sin(Time.get_ticks_msec() / 200.0))
+
+
+func _on_release(pos: Vector2) -> void:
+	var p := _press
+	_press = {}
+	if p["consumed"]:
+		return
+	if p["dragging"]:
+		shooter.set_aim(pos - Ui.SHOOTER_POS)
+		_update_preview()
+		_fire()
+		return
+	_on_tap(pos)
+
+
+func _on_tap(pos: Vector2) -> void:
 	# 作弊1：颜色选择条优先命中
 	var i := BallPicker.hit(pos)
 	if i >= 0:
 		game.set_current_color(i)
 		refresh()
 		return
-	if game.mode == Game.Mode.SHOOT:
-		_fire()
+	if fx_layer.is_swapping():
+		return
+	var c: Vector2i = game.layout.pixel_to_cell(BoardCamera.to_board(pos, 1.0, _cam_origin()))
+	if game.board.has_ball(c):
+		_swap_select(c)
 	else:
-		_swap_at(pos)
+		_fire()
 
+
+# ---------- 发射 ----------
 
 func _fire() -> void:
 	if shooter.is_flying():
@@ -106,59 +155,65 @@ func _fire() -> void:
 	if tr["cell"] == INVALID_CELL:
 		return
 	var cell: Vector2i = tr["cell"]
+	selected = INVALID_CELL
 	var before: Dictionary = game.board.cells.duplicate()
 	shooter.start_flight(tr["path"], game.current_color, func() -> void:
 		var res: Dictionary = game.attach_ball(cell)
 		_spawn_effects(res, before)
-		selected = INVALID_CELL
 		refresh()
 	)
 
 
-func _swap_at(pos: Vector2) -> void:
-	if fx_layer.is_swapping():
-		return # 动画期间锁输入
-	var o := _cam_origin()
-	var c: Vector2i = game.layout.pixel_to_cell(BoardCamera.to_board(pos, 1.0, o))
-	if not game.board.has_ball(c):
-		selected = INVALID_CELL
-	elif selected == INVALID_CELL:
+# ---------- 三消互换 ----------
+
+func _swap_select(c: Vector2i) -> void:
+	if selected == INVALID_CELL:
 		selected = c
 	elif c == selected:
 		selected = INVALID_CELL
+	elif not _is_neighbor(selected, c):
+		selected = c # 点非相邻球 = 改选
 	else:
-		var a := selected
-		selected = INVALID_CELL
-		var before: Dictionary = game.board.cells.duplicate()
-		var res: Dictionary = game.try_swap(a, c)
-		var pos_a := BoardCamera.to_screen(game.layout.cell_to_pixel(a), 1.0, o)
-		var pos_b := BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
-		var color_a: Color = Ui.BALL_COLORS[before[a]]
-		var color_b: Color = Ui.BALL_COLORS[before[c]]
-		var r: float = game.layout.radius * 0.95
-		board_view.hidden_cells = {a: true, c: true}
-		if res["matched"]:
-			fx_layer.play_swap(pos_a, pos_b, color_a, color_b, r, false, 0.16, func() -> void:
-				board_view.hidden_cells = {}
-				_spawn_effects(res, before)
-				refresh()
-			)
-		else:
-			fx_layer.play_swap(pos_a, pos_b, color_a, color_b, r, true, 0.28, func() -> void:
-				board_view.hidden_cells = {}
-				refresh()
-			)
+		_animated_swap(selected, c)
 	refresh()
 
+
+func _is_neighbor(a: Vector2i, b: Vector2i) -> bool:
+	return HexGrid.neighbors(a).has(b)
+
+
+func _animated_swap(a: Vector2i, c: Vector2i) -> void:
+	selected = INVALID_CELL
+	var o := _cam_origin()
+	var before: Dictionary = game.board.cells.duplicate()
+	var res: Dictionary = game.try_swap(a, c)
+	var pos_a := BoardCamera.to_screen(game.layout.cell_to_pixel(a), 1.0, o)
+	var pos_b := BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
+	var color_a: Color = Ui.BALL_COLORS[before[a]]
+	var color_b: Color = Ui.BALL_COLORS[before[c]]
+	var r: float = game.layout.radius * 0.95
+	board_view.hidden_cells = {a: true, c: true}
+	if res["matched"]:
+		fx_layer.play_swap(pos_a, pos_b, color_a, color_b, r, false, 0.16, func() -> void:
+			board_view.hidden_cells = {}
+			_spawn_effects(res, before)
+			refresh()
+		)
+	else:
+		fx_layer.play_swap(pos_a, pos_b, color_a, color_b, r, true, 0.28, func() -> void:
+			board_view.hidden_cells = {}
+			refresh()
+		)
+
+
+# ---------- 特效 ----------
 
 func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 	var o := _cam_origin()
 	for c in res["popped"]:
 		var pos := BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
 		fx_layer.spawn_pop(pos, game.layout.radius, Ui.BALL_COLORS[before.get(c, 0)])
-	for c in res["dropped"]:
-		var pos := BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
-		fx_layer.spawn_drop(pos, game.layout.radius, Ui.BALL_COLORS[before.get(c, 0)])
+	_spawn_drop_effects(res["dropped"], before)
 	_spawn_drop_effects(res.get("overflow", []), before)
 
 
@@ -186,7 +241,7 @@ func _trace_screen() -> Dictionary:
 
 
 func _update_preview() -> void:
-	if game.mode != Game.Mode.SHOOT or shooter.is_flying():
+	if shooter.is_flying():
 		shooter.set_preview(PackedVector2Array(), Vector2.ZERO, 0)
 		return
 	var tr := _trace_screen()
@@ -199,12 +254,6 @@ func _update_preview() -> void:
 
 
 # ---------- HUD 回调 ----------
-
-func _on_mode_pressed() -> void:
-	game.toggle_mode()
-	selected = INVALID_CELL
-	refresh()
-
 
 func _on_rows_dropped(n: int) -> void:
 	var before: Dictionary = game.board.cells.duplicate()
