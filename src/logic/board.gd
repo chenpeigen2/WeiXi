@@ -43,6 +43,18 @@ func ball_count() -> int:
 	return cells.size()
 
 
+func is_empty() -> bool:
+	return cells.is_empty()
+
+
+## 在顶部 n_rows 行随机补球（清空后自动续局）
+func refill_top(n_rows: int, rng: RandomNumberGenerator, color_count := 6) -> void:
+	for r in range(n_rows):
+		var q0: int = HexGrid.q_min(r)
+		for col in range(width):
+			cells[Vector2i(q0 + col, r)] = rng.randi_range(0, color_count - 1)
+
+
 ## 底部增加 n 行空位（永不超线：底线随盘面向下推移）
 func extend_rows(n: int) -> void:
 	rows += n
