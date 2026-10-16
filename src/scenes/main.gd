@@ -16,7 +16,6 @@ const Background = preload("res://src/ui/background.gd")
 const FxLayer = preload("res://src/ui/fx_layer.gd")
 
 const INVALID_CELL := Vector2i(-999, -999)
-const LONG_PRESS_MS := 400
 const DRAG_THRESHOLD := 8.0
 
 var game: RefCounted
@@ -30,7 +29,7 @@ var score_panel: Control
 var hint_label: Label
 var row_slider: Control
 
-var _press := {} # {pos,time,on_shooter,consumed,dragging}
+var _press := {} # {pos,dragging}
 
 
 func _ready() -> void:
@@ -94,34 +93,40 @@ func _unhandled_input(event: InputEvent) -> void:
 			_press["dragging"] = true
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			_press = {
-				"pos": event.position,
-				"time": Time.get_ticks_msec(),
-				"on_shooter": event.position.distance_to(Ui.SHOOTER_POS) <= game.layout.radius * 1.5,
-				"consumed": false,
-				"dragging": false,
-			}
+			if event.double_click:
+				_try_cycle_board_ball(event.position)
+			else:
+				_press = {"pos": event.position, "dragging": false}
 		else:
 			_on_release(event.position)
 
 
 func _process(_delta: float) -> void:
-	# 长按当前球 → 循环换色
-	if not _press.is_empty() and not _press["consumed"] and _press["on_shooter"]:
-		if Time.get_ticks_msec() - _press["time"] >= LONG_PRESS_MS:
-			game.cycle_current_color()
-			_press["consumed"] = true
-			refresh()
 	# 提示闪烁
 	if hint_label.visible:
 		hint_label.modulate = Color.WHITE.lerp(Color(1, 0.6, 0.4), 0.5 + 0.5 * sin(Time.get_ticks_msec() / 200.0))
 
 
+## 作弊1：双击棋盘上已射出的球 → 该球颜色循环+1（凑三连即消）
+func _try_cycle_board_ball(pos: Vector2) -> void:
+	if fx_layer.is_swapping():
+		return
+	var c: Vector2i = game.layout.pixel_to_cell(BoardCamera.to_board(pos, 1.0, _cam_origin()))
+	if not game.board.has_ball(c):
+		return
+	var before: Dictionary = game.board.cells.duplicate()
+	var res: Dictionary = game.cycle_ball_color(c)
+	selected = INVALID_CELL
+	if not res["popped"].is_empty():
+		_spawn_effects(res, before)
+	refresh()
+
+
 func _on_release(pos: Vector2) -> void:
+	if _press.is_empty():
+		return
 	var p := _press
 	_press = {}
-	if p["consumed"]:
-		return
 	if p["dragging"]:
 		shooter.set_aim(pos - Ui.SHOOTER_POS)
 		_update_preview()
