@@ -9,8 +9,7 @@ const Trajectory = preload("res://src/logic/trajectory.gd")
 enum Mode { SHOOT, MATCH3 }
 
 const WIDTH := 10
-const INITIAL_ROWS := 12
-const MAX_ROWS := 14 # 超过即裁剪顶行（与相机可见容量一致，测试锁定）
+const MAX_ROWS := 14 # 固定容量（与相机可见容量一致，测试锁定）
 const REFILL_ROWS := 5
 const COLOR_COUNT := 6
 const HINT_THRESHOLD := 10
@@ -23,14 +22,14 @@ var rng: RandomNumberGenerator
 var mode := Mode.SHOOT
 var current_color := 0
 var next_color := 0
-var deadline_row := INITIAL_ROWS - 1
+var deadline_row := MAX_ROWS - 1 # 固定底线
 
 
 func _init(p_seed := 0) -> void:
 	rng = RandomNumberGenerator.new()
 	rng.seed = p_seed
 	layout = HexLayout.new(BALL_RADIUS)
-	board = Board.new(WIDTH, INITIAL_ROWS)
+	board = Board.new(WIDTH, MAX_ROWS)
 	scorer = Scorer.new()
 	board.refill_top(REFILL_ROWS, rng, COLOR_COUNT)
 	current_color = _rand_color()
@@ -46,11 +45,9 @@ func set_current_color(c: int) -> void:
 	current_color = c
 
 
-## 作弊2：行数滑杆，主动向下加 n 行空位（超出上限裁顶行）
-func add_rows(n: int) -> void:
-	board.extend_rows(n)
-	deadline_row += n
-	deadline_row -= board.trim_top_to(MAX_ROWS)
+## 作弊2：掉落滑杆，手动把最低 n 个占用行的球捅掉
+func drop_bottom_rows(n: int) -> Array[Vector2i]:
+	return board.drop_lowest_rows(n)
 
 
 ## 射击模式：球吸附到 cell 后的完整结算
@@ -58,7 +55,7 @@ func attach_ball(cell: Vector2i) -> Dictionary:
 	board.set_ball(cell, current_color)
 	var res: Dictionary = board.resolve_at(cell)
 	_score_result(res)
-	_after_board_change()
+	_after_board_change(res)
 	current_color = next_color
 	next_color = _rand_color()
 	return res
@@ -69,7 +66,7 @@ func try_swap(a: Vector2i, b: Vector2i) -> Dictionary:
 	var res: Dictionary = board.swap(a, b)
 	if res["matched"]:
 		_score_result(res)
-		_after_board_change()
+		_after_board_change(res)
 	return res
 
 
@@ -94,10 +91,10 @@ func _score_result(res: Dictionary) -> void:
 		scorer.register_clear(res["popped"].size(), res["dropped"].size())
 
 
-func _after_board_change() -> void:
+func _after_board_change(res: Dictionary) -> void:
 	if board.is_empty():
 		# 清空自动补球并切回射击模式（玩不死：永远有球可打）
 		board.refill_top(REFILL_ROWS, rng, COLOR_COUNT)
 		mode = Mode.SHOOT
-	deadline_row += board.ensure_space(deadline_row)
-	deadline_row -= board.trim_top_to(MAX_ROWS)
+	# 触底掉落：到达底线的最低行球掉出，腾出空间
+	res["overflow"] = board.drop_overflow(deadline_row)

@@ -1,9 +1,9 @@
 extends Control
-## 作弊2·加行滑杆：竖向拖动 1~5 行，松手生效并自动复位。金色滑块。
+## 作弊2·掉落滑杆：竖向拖动 1~5 档，松手把底部对应行数的球捅掉，自动复位。金色滑块。
 
 const Ui = preload("res://src/ui/theme.gd")
 
-signal rows_added(n: int)
+signal rows_dropped(n: int)
 
 var slider: VSlider
 
@@ -13,7 +13,7 @@ func _ready() -> void:
 	size = Vector2(69, 450)
 
 	var label := Label.new()
-	label.text = "加行"
+	label.text = "掉落"
 	label.position = Vector2(4, -39)
 	label.add_theme_font_size_override("font_size", 22)
 	label.add_theme_color_override("font_color", Ui.TEXT_DIM)
@@ -42,5 +42,5 @@ func _ready() -> void:
 
 
 func _on_drag_ended(_value_changed: bool) -> void:
-	rows_added.emit(int(slider.value))
+	rows_dropped.emit(int(slider.value))
 	slider.value = 1 # 自动复位

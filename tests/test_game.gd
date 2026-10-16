@@ -8,7 +8,8 @@ func test_new_game_initial_state() -> void:
 	var g := Game.new(1)
 	assert_eq(g.board.ball_count(), 50, "开局5行")
 	assert_eq(g.mode, Game.Mode.SHOOT, "默认射击模式")
-	assert_eq(g.deadline_row, 11, "初始底线")
+	assert_eq(g.deadline_row, Game.MAX_ROWS - 1, "底线固定在最底可见行")
+	assert_eq(g.board.rows, Game.MAX_ROWS, "棋盘容量固定")
 	assert_eq(g.scorer.score, 0)
 	assert_true(g.current_color >= 0 and g.current_color < 6)
 	assert_true(g.next_color >= 0 and g.next_color < 6)
@@ -40,40 +41,30 @@ func test_attach_without_pop_is_miss() -> void:
 	assert_eq(g.scorer.combo, 1, "连击保持1")
 
 
-func test_cheat_add_rows_extends_board_and_deadline() -> void:
+func test_cheat_drop_bottom_rows() -> void:
 	var g := Game.new(1)
-	g.add_rows(4) # 作弊2: 行数滑杆, 12+4=16 > 14 → 裁2行
-	assert_eq(g.board.rows, Game.MAX_ROWS, "超过上限裁到 MAX_ROWS")
-	assert_eq(g.deadline_row, 11 + 4 - 2, "底线=11+加行-裁剪")
+	g.board = Board.new(10, Game.MAX_ROWS)
+	g.board.set_ball(Vector2i(0, 5), 1)
+	g.board.set_ball(Vector2i(0, 8), 2)
+	g.board.set_ball(Vector2i(1, 8), 3)
+	var dropped: Array = g.drop_bottom_rows(1) # 作弊2: 掉落滑杆
+	assert_eq(dropped.size(), 2, "最低占用行的2个球掉落")
+	assert_true(g.board.has_ball(Vector2i(0, 5)), "上面的球保留")
+	assert_eq(g.board.lowest_occupied_row(), 5)
+	assert_eq(g.deadline_row, Game.MAX_ROWS - 1, "底线不动")
 
 
-func test_add_rows_beyond_max_trims_top() -> void:
+func test_attach_at_deadline_overflows_and_drops() -> void:
 	var g := Game.new(1)
-	g.add_rows(10) # 12+10=22 > MAX_ROWS(14) → 裁8行
-	assert_eq(g.board.rows, Game.MAX_ROWS, "超过上限裁到 MAX_ROWS")
-	assert_eq(g.deadline_row, 11 + 10 - 8, "底线=11+加行-裁剪")
-
-
-func test_trimmed_balls_vanish_and_rest_stay_anchored() -> void:
-	var g := Game.new(1)
-	g.board = Board.new(10, 12)
-	g.deadline_row = 11
-	g.board.set_ball(Vector2i(0, 0), 1) # 顶行, 将被永久移除
-	g.board.set_ball(Vector2i(0, 9), 2) # 在裁剪线之下, 幸存并上移
-	g.add_rows(10) # 12+10=22 > MAX_ROWS(14) → 裁8行
-	assert_eq(g.board.ball_count(), 1, "顶行球永久消失")
-	# 原(0,9) col=4 → 裁8行后 r=1, q=4+q_min(1)=4
-	assert_eq(g.board.get_color(Vector2i(4, 1)), 2, "幸存球上移且列保持")
-
-
-func test_attach_at_deadline_auto_extends() -> void:
-	var g := Game.new(1)
-	g.board = Board.new(10, 12)
+	g.board = Board.new(10, Game.MAX_ROWS)
 	g.board.set_ball(Vector2i(5, 0), 3)
 	g.set_current_color(1)
-	g.attach_ball(Vector2i(0, 11)) # 落点碰到底线, 12+3=15 > 14 → 裁1行
-	assert_eq(g.board.rows, 14, "自动续3行后裁剪到上限")
-	assert_eq(g.deadline_row, 13, "底线=11+3-1")
+	var res: Dictionary = g.attach_ball(Vector2i(0, 13)) # 落点到达底线
+	assert_has(res["overflow"], Vector2i(0, 13), "刚落的球随最低行一起掉出")
+	assert_false(g.board.has_ball(Vector2i(0, 13)), "掉落后不再存在")
+	assert_eq(g.board.rows, Game.MAX_ROWS, "棋盘容量不变")
+	assert_eq(g.deadline_row, Game.MAX_ROWS - 1, "底线不动")
+	assert_eq(g.board.lowest_occupied_row(), 0, "只剩顶行锚点")
 
 
 

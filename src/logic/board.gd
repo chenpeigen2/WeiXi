@@ -3,9 +3,6 @@ extends RefCounted
 
 const HexGrid = preload("res://src/logic/hex_grid.gd")
 
-## 触底自动续行的单次幅度
-const EXTEND_CHUNK := 3
-
 var width: int
 var rows: int
 var cells: Dictionary = {} # Vector2i -> int(颜色)
@@ -55,11 +52,6 @@ func refill_top(n_rows: int, rng: RandomNumberGenerator, color_count := 6) -> vo
 			cells[Vector2i(q0 + col, r)] = rng.randi_range(0, color_count - 1)
 
 
-## 底部增加 n 行空位（永不超线：底线随盘面向下推移）
-func extend_rows(n: int) -> void:
-	rows += n
-
-
 func lowest_occupied_row() -> int:
 	var lowest := -1
 	for c in cells:
@@ -68,29 +60,36 @@ func lowest_occupied_row() -> int:
 	return lowest
 
 
-## 保证最低球不碰到 deadline_row：不足就按 EXTEND_CHUNK 续行，返回续的行数
-func ensure_space(deadline_row: int) -> int:
-	var added := 0
-	while lowest_occupied_row() >= deadline_row + added:
-		added += EXTEND_CHUNK
-	rows += added
-	return added
+## 触底掉落（永不超线）：最低占用行到达/越过底线时，该行所有球掉落移除，
+## 重复直到球堆退回安全区。返回掉落的格子。
+func drop_overflow(deadline_row: int) -> Array[Vector2i]:
+	var dropped: Array[Vector2i] = []
+	while lowest_occupied_row() >= deadline_row:
+		dropped.append_array(_drop_row(lowest_occupied_row()))
+	return dropped
 
 
-## 裁剪：总行数超过 max_rows 时，顶部超出的行连同球永久移除，
-## 其余行整体上移（视觉列保持），返回裁掉的行数。
-func trim_top_to(max_rows: int) -> int:
-	var extra := rows - max_rows
-	if extra <= 0:
-		return 0
-	var new_cells := {}
+## 手动掉落：最低 n 个占用行的球全部掉落移除，返回掉落的格子
+func drop_lowest_rows(n: int) -> Array[Vector2i]:
+	var occupied := {}
 	for c in cells:
-		if c.y >= extra:
-			var col: int = c.x - HexGrid.q_min(c.y)
-			new_cells[Vector2i(col + HexGrid.q_min(c.y - extra), c.y - extra)] = cells[c]
-	cells = new_cells
-	rows -= extra
-	return extra
+		occupied[c.y] = true
+	var row_list := occupied.keys()
+	row_list.sort()
+	var dropped: Array[Vector2i] = []
+	for r in row_list.slice(max(0, row_list.size() - n)):
+		dropped.append_array(_drop_row(r))
+	return dropped
+
+
+func _drop_row(r: int) -> Array[Vector2i]:
+	var row_cells: Array[Vector2i] = []
+	for c in cells:
+		if c.y == r:
+			row_cells.append(c)
+	for c in row_cells:
+		remove_ball(c)
+	return row_cells
 
 
 ## 从 start 出发的相连同色球（含自身）

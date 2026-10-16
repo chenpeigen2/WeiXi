@@ -52,7 +52,7 @@ func _ready() -> void:
 	mode_button.pressed.connect(_on_mode_pressed)
 	hud.add_child(mode_button)
 	row_slider = _make(RowSlider, "RowSlider")
-	row_slider.rows_added.connect(_on_rows_added)
+	row_slider.rows_dropped.connect(_on_rows_dropped)
 	hud.add_child(row_slider)
 
 	refresh()
@@ -140,6 +140,14 @@ func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 	for c in res["dropped"]:
 		var pos := BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
 		fx_layer.spawn_drop(pos, game.layout.radius, Ui.BALL_COLORS[before.get(c, 0)])
+	_spawn_drop_effects(res.get("overflow", []), before)
+
+
+func _spawn_drop_effects(cells: Array, before: Dictionary) -> void:
+	var o := _cam_origin()
+	for c in cells:
+		var pos := BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
+		fx_layer.spawn_drop(pos, game.layout.radius, Ui.BALL_COLORS[before.get(c, 0)])
 
 
 # ---------- 弹道（预览与飞行共用同一条折线） ----------
@@ -179,8 +187,10 @@ func _on_mode_pressed() -> void:
 	refresh()
 
 
-func _on_rows_added(n: int) -> void:
-	game.add_rows(n)
+func _on_rows_dropped(n: int) -> void:
+	var before: Dictionary = game.board.cells.duplicate()
+	var dropped: Array = game.drop_bottom_rows(n)
+	_spawn_drop_effects(dropped, before)
 	refresh()
 
 
