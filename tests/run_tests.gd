@@ -18,7 +18,8 @@ func _init() -> void:
 
 	for path in files:
 		var script: GDScript = load(path)
-		if script == null:
+		# 注意: 解析失败的脚本 load() 不返回 null, 而是返回损坏的资源, 需用 can_instantiate() 判活
+		if script == null or not script.can_instantiate():
 			failed_files += 1
 			printerr("无法加载测试文件: ", path)
 			continue
