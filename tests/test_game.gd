@@ -39,17 +39,20 @@ func test_attach_without_pop_is_miss() -> void:
 	assert_eq(g.scorer.combo, 1, "连击保持1")
 
 
-func test_attach_at_deadline_overflows_and_drops() -> void:
+func test_deadline_gives_one_more_shot_grace() -> void:
 	var g := Game.new(1)
 	g.board = Board.new(10, Game.MAX_ROWS)
-	g.board.set_ball(Vector2i(5, 0), 3)
+	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
 	g.set_current_color(1)
-	var res: Dictionary = g.attach_ball(Vector2i(0, 13)) # 落点到达底线
-	assert_has(res["overflow"], Vector2i(0, 13), "刚落的球随最低行一起掉出")
-	assert_false(g.board.has_ball(Vector2i(0, 13)), "掉落后不再存在")
+	var res1: Dictionary = g.attach_ball(Vector2i(0, 13)) # 第一个球触线
+	assert_eq(res1["overflow"].size(), 0, "触线球暂留, 宽限一发")
+	assert_true(g.board.has_ball(Vector2i(0, 13)), "球留在场上")
+	g.set_current_color(2)
+	var res2: Dictionary = g.attach_ball(Vector2i(8, 11)) # 再打一个
+	assert_has(res2["overflow"], Vector2i(0, 13), "再打一个之后最低行才掉落")
+	assert_false(g.board.has_ball(Vector2i(0, 13)), "掉落行清空")
+	assert_true(g.board.has_ball(Vector2i(8, 11)), "新打的球不受影响")
 	assert_eq(g.board.rows, Game.MAX_ROWS, "棋盘容量不变")
-	assert_eq(g.deadline_row, Game.MAX_ROWS - 1, "底线不动")
-	assert_eq(g.board.lowest_occupied_row(), 0, "只剩顶行锚点")
 
 
 
