@@ -12,6 +12,7 @@ config_version=5
 
 config/name="WeiXi"
 config/description="玩不死的泡泡龙：泡泡龙射击消除 + 经典三消融合"
+run/main_scene="res://src/scenes/main.tscn"
 
 [display]
 

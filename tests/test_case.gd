@@ -3,6 +3,8 @@ extends RefCounted
 
 var failures: Array[String] = []
 var assert_count := 0
+## 由运行器注入，场景冒烟测试用
+var tree_root: Node
 
 
 func assert_eq(actual: Variant, expected: Variant, msg := "") -> void:

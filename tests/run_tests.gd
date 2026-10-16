@@ -3,7 +3,20 @@ extends SceneTree
 ##   /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script tests/run_tests.gd
 ## 自动发现并运行 tests/ 下所有 test_*.gd 中以 test_ 开头的方法。
 
-func _init() -> void:
+var _done := false
+
+
+# 场景树未初始化完时 root 不在树内, add_child 不触发 _ready。
+# 因此测试推迟到第一帧 _process 执行。
+func _process(_delta: float) -> bool:
+	if _done:
+		return true
+	_done = true
+	_run_all()
+	return true
+
+
+func _run_all() -> void:
 	var total := 0
 	var failed_tests := 0
 	var failed_files := 0
@@ -29,6 +42,7 @@ func _init() -> void:
 				continue
 			total += 1
 			var inst: RefCounted = script.new()
+			inst.tree_root = root
 			inst.call(method_name)
 			# GDScript 运行时错误会中断测试函数但不进 failures, 用断言数兜底识别
 			if inst.assert_count == 0:
