@@ -13,7 +13,7 @@ const INITIAL_ROWS := 12
 const REFILL_ROWS := 5
 const COLOR_COUNT := 6
 const HINT_THRESHOLD := 10
-const BALL_RADIUS := 18.0
+const BALL_RADIUS := 30.0
 
 var board: RefCounted
 var scorer: RefCounted
