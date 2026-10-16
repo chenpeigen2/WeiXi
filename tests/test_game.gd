@@ -113,3 +113,33 @@ func test_set_board_ball_color_triggers_match_and_scores() -> void:
 	var res: Dictionary = g.set_ball_color(Vector2i(0, 1), 1)
 	assert_eq(res["popped"].size(), 3, "换色形成三连即消")
 	assert_eq(g.scorer.score, 30, "计分")
+
+
+func test_trigger_shot_survives_while_overdue_row_drops() -> void:
+	var g := Game.new(1)
+	g.board = Board.new(10, Game.MAX_ROWS)
+	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
+	g.board.set_ball(Vector2i(0, 13), 1) # 逾期行(触线)
+	g.set_current_color(2)
+	var res: Dictionary = g.attach_ball(Vector2i(5, 13)) # 触发的这一发也落线行
+	assert_has(res["overflow"], Vector2i(0, 13), "逾期行掉落")
+	assert_false(g.board.has_ball(Vector2i(0, 13)), "旧球清掉")
+	assert_true(g.board.has_ball(Vector2i(5, 13)), "这一发不陪葬, 落在腾出的行")
+
+
+func test_overflow_drop_takes_unsupported_balls() -> void:
+	var g := Game.new(1)
+	g.board = Board.new(10, Game.MAX_ROWS)
+	# 顶部链: (q,13) q=0..5 与 (0,r) r=0..12, 全色1
+	for q in range(6):
+		g.board.set_ball(Vector2i(q, 13), 1)
+	for r in range(13):
+		g.board.set_ball(Vector2i(0, r), 1)
+	# 只靠 (5,13)/(6,13) 吊着的球
+	g.board.set_ball(Vector2i(6, 12), 2)
+	g.board.set_ball(Vector2i(6, 13), 1)
+	g.set_current_color(2)
+	var res: Dictionary = g.attach_ball(Vector2i(1, 12)) # 发球前最低行13存在→触发
+	assert_has(res["overflow"], Vector2i(0, 13), "逾期行掉落")
+	assert_has(res["overflow"], Vector2i(6, 12), "失去支撑的球跟着掉")
+	assert_true(g.board.has_ball(Vector2i(1, 12)), "新球仍在")

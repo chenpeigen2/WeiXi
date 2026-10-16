@@ -58,13 +58,18 @@ func set_ball_color(cell: Vector2i, color: int) -> Dictionary:
 
 
 ## 发射：球吸附到 cell 后的完整结算。
-## 宽限一发: 触线的球先留着，之后再发射才会触发最低行掉落。
+## 宽限一发: 触线的球先留着；之后再发射时，逾期的最低行先掉出腾位置，
+## 新球不陪葬，掉行后失去支撑的悬空球跟着掉。
 func attach_ball(cell: Vector2i) -> Dictionary:
-	var at_line_before: bool = board.lowest_occupied_row() >= deadline_row
+	var overflow: Array[Vector2i] = []
+	if board.lowest_occupied_row() >= deadline_row:
+		overflow = board.drop_overflow(deadline_row)
+		overflow.append_array(_drop_floating())
 	board.set_ball(cell, current_color)
 	var res: Dictionary = board.resolve_at(cell)
 	_score_result(res)
-	_after_board_change(res, at_line_before)
+	_after_board_change(res, false)
+	res["overflow"] = overflow
 	current_color = next_color
 	next_color = _rand_color()
 	return res
@@ -96,12 +101,17 @@ func _score_result(res: Dictionary) -> void:
 		scorer.register_clear(res["popped"].size(), res["dropped"].size())
 
 
-## trigger_overflow: 仅"发球前球堆已在触线状态"的那次发射触发掉落（宽限一发）
-func _after_board_change(res: Dictionary, trigger_overflow: bool) -> void:
+## 掉行后失去与顶行连接的球（物理一致性）
+func _drop_floating() -> Array[Vector2i]:
+	var fl: Array[Vector2i] = board.floating()
+	for c in fl:
+		board.remove_ball(c)
+	return fl
+
+
+func _after_board_change(res: Dictionary, _trigger_overflow: bool) -> void:
 	if board.is_empty():
 		# 清空自动补球（玩不死：永远有球可打）
 		board.refill_top(REFILL_ROWS, rng, COLOR_COUNT)
-	if trigger_overflow:
-		res["overflow"] = board.drop_overflow(deadline_row)
-	else:
+	if not res.has("overflow"):
 		res["overflow"] = []
