@@ -39,19 +39,6 @@ func test_attach_without_pop_is_miss() -> void:
 	assert_eq(g.scorer.combo, 1, "连击保持1")
 
 
-func test_cheat_drop_bottom_rows() -> void:
-	var g := Game.new(1)
-	g.board = Board.new(10, Game.MAX_ROWS)
-	g.board.set_ball(Vector2i(0, 5), 1)
-	g.board.set_ball(Vector2i(0, 8), 2)
-	g.board.set_ball(Vector2i(1, 8), 3)
-	var dropped: Array = g.drop_bottom_rows(1) # 作弊2: 掉落滑杆
-	assert_eq(dropped.size(), 2, "最低占用行的2个球掉落")
-	assert_true(g.board.has_ball(Vector2i(0, 5)), "上面的球保留")
-	assert_eq(g.board.lowest_occupied_row(), 5)
-	assert_eq(g.deadline_row, Game.MAX_ROWS - 1, "底线不动")
-
-
 func test_attach_at_deadline_overflows_and_drops() -> void:
 	var g := Game.new(1)
 	g.board = Board.new(10, Game.MAX_ROWS)

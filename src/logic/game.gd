@@ -56,10 +56,6 @@ func set_ball_color(cell: Vector2i, color: int) -> Dictionary:
 	return res
 
 
-## 作弊2：掉落滑杆，手动把最低 n 个占用行的球捅掉
-func drop_bottom_rows(n: int) -> Array[Vector2i]:
-	return board.drop_lowest_rows(n)
-
 
 ## 射击模式：球吸附到 cell 后的完整结算
 func attach_ball(cell: Vector2i) -> Dictionary:

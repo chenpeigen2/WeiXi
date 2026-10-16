@@ -13,13 +13,19 @@ func _instantiate_main() -> Node:
 
 func test_main_scene_components_exist() -> void:
 	var node := _instantiate_main()
-	for p in ["Background", "BoardView", "Shooter", "ColorPicker", "FxLayer", "ColorPopup", "HUD/ScorePanel", "HUD/HintLabel", "HUD/RowSlider"]:
+	for p in ["Background", "BoardView", "Shooter", "ColorPicker", "FxLayer", "ColorPopup", "HUD/ScorePanel", "HUD/HintLabel"]:
 		assert_true(node.get_node_or_null(p) != null, "存在组件 %s" % p)
+	assert_true(node.get_node_or_null("HUD/RowSlider") == null, "不再有主动掉落滑杆")
 	node.free()
 
 
 func test_double_click_marks_target_ball() -> void:
 	var node := _instantiate_main()
+	# 确定性棋盘: 换成2时不会触发消除
+	node.game.board = Board.new(10, node.game.board.rows)
+	node.game.board.set_ball(Vector2i(0, 0), 3)
+	node.game.board.set_ball(Vector2i(1, 0), 0)
+	node.game.board.set_ball(Vector2i(0, 1), 1)
 	var pos: Vector2 = node.board_view.cam_origin() # cell(0,0) 的屏幕位置
 	node._try_cycle_board_ball(pos)
 	assert_true(node.color_popup.active, "调色板打开")

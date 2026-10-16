@@ -11,7 +11,6 @@ const BoardView = preload("res://src/ui/board_view.gd")
 const Shooter = preload("res://src/ui/shooter.gd")
 const BallPicker = preload("res://src/ui/color_picker.gd")
 const ScorePanel = preload("res://src/ui/score_panel.gd")
-const RowSlider = preload("res://src/ui/row_slider.gd")
 const Background = preload("res://src/ui/background.gd")
 const FxLayer = preload("res://src/ui/fx_layer.gd")
 const BallColorPopup = preload("res://src/ui/ball_color_popup.gd")
@@ -29,7 +28,6 @@ var fx_layer: Node2D
 var color_popup: Node2D
 var score_panel: Control
 var hint_label: Label
-var row_slider: Control
 
 var _press := {} # {pos,dragging}
 
@@ -63,9 +61,6 @@ func _ready() -> void:
 	hint_label.add_theme_font_size_override("font_size", 24)
 	hint_label.add_theme_color_override("font_color", Ui.ACCENT)
 	hud.add_child(hint_label)
-	row_slider = _make(RowSlider, "RowSlider")
-	row_slider.rows_dropped.connect(_on_rows_dropped)
-	hud.add_child(row_slider)
 
 	refresh()
 
@@ -290,12 +285,6 @@ func _update_preview() -> void:
 
 
 # ---------- HUD 回调 ----------
-
-func _on_rows_dropped(n: int) -> void:
-	var before: Dictionary = game.board.cells.duplicate()
-	var dropped: Array = game.drop_bottom_rows(n)
-	_spawn_drop_effects(dropped, before)
-	refresh()
 
 
 # ---------- 相机（球大小恒定，超高上滑） ----------

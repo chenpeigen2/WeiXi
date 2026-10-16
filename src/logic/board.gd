@@ -68,20 +68,6 @@ func drop_overflow(deadline_row: int) -> Array[Vector2i]:
 		dropped.append_array(_drop_row(lowest_occupied_row()))
 	return dropped
 
-
-## 手动掉落：最低 n 个占用行的球全部掉落移除，返回掉落的格子
-func drop_lowest_rows(n: int) -> Array[Vector2i]:
-	var occupied := {}
-	for c in cells:
-		occupied[c.y] = true
-	var row_list := occupied.keys()
-	row_list.sort()
-	var dropped: Array[Vector2i] = []
-	for r in row_list.slice(max(0, row_list.size() - n)):
-		dropped.append_array(_drop_row(r))
-	return dropped
-
-
 func _drop_row(r: int) -> Array[Vector2i]:
 	var row_cells: Array[Vector2i] = []
 	for c in cells:
