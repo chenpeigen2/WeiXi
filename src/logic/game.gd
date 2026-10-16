@@ -14,7 +14,7 @@ const MAX_ROWS := 14 # 超过即裁剪顶行（与相机可见容量一致，测
 const REFILL_ROWS := 5
 const COLOR_COUNT := 6
 const HINT_THRESHOLD := 10
-const BALL_RADIUS := 22.0
+const BALL_RADIUS := 33.0
 
 var board: RefCounted
 var scorer: RefCounted

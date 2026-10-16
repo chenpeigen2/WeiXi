@@ -18,7 +18,7 @@ func _ready() -> void:
 	_panel.bg_color = Ui.PANEL
 	_panel.border_color = Ui.PANEL_STROKE
 	_panel.set_border_width_all(1)
-	_panel.set_corner_radius_all(20)
+	_panel.set_corner_radius_all(30)
 
 
 func cam_origin() -> Vector2:

@@ -8,16 +8,16 @@ var _t := 0.0
 
 
 func _ready() -> void:
-	position = Vector2(350, 12)
-	size = Vector2(134, 44)
-	add_theme_font_size_override("font_size", 17)
+	position = Vector2(525, 18)
+	size = Vector2(201, 66)
+	add_theme_font_size_override("font_size", 26)
 	add_theme_color_override("font_color", Ui.TEXT_MAIN)
 
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(1, 1, 1, 0.07)
 	normal.border_color = Ui.ACCENT
 	normal.set_border_width_all(2)
-	normal.set_corner_radius_all(22)
+	normal.set_corner_radius_all(33)
 	add_theme_stylebox_override("normal", normal)
 
 	var hover := normal.duplicate()

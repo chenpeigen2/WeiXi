@@ -16,8 +16,8 @@ run/main_scene="res://src/scenes/main.tscn"
 
 [display]
 
-window/size/viewport_width=500
-window/size/viewport_height=850
+window/size/viewport_width=750
+window/size/viewport_height=1275
 
 [rendering]
 

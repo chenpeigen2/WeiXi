@@ -3,7 +3,7 @@ extends Node2D
 
 const POP_DUR := 0.30
 const DROP_DUR := 0.50
-const DROP_GRAVITY := 3000.0
+const DROP_GRAVITY := 4500.0
 
 var _effects: Array[Dictionary] = []
 
