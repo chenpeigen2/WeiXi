@@ -32,12 +32,13 @@ func _draw() -> void:
 	var layout = game.layout
 	var origin := cam_origin()
 
-	# 背板
+	# 背板：区域标注框，紧贴球区（上沿顶行球留白，下沿贴底线）
+	var panel_bottom_y: float = BoardCamera.panel_bottom(game.deadline_row, layout.row_height, layout.radius, origin.y)
 	draw_style_box(_panel, Rect2(
 		Ui.BOARD_MARGIN_X - 8,
 		Ui.BOARD_TOP - 10,
 		Ui.SCREEN_W - (Ui.BOARD_MARGIN_X - 8) * 2,
-		Ui.BOARD_AREA_H + 20
+		panel_bottom_y - (Ui.BOARD_TOP - 10)
 	))
 
 	# 球（滑出顶部的行隐藏不画）
@@ -55,8 +56,8 @@ func _draw() -> void:
 		var pos: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(selected), 1.0, origin)
 		draw_arc(pos, r * 1.05, 0, TAU, 40, Ui.SELECTION, 3.5, true)
 
-	# 发光安全线（非死亡线，触底自动续行上滑）
-	var line_y: float = BoardCamera.to_screen(Vector2(0, (game.deadline_row + 1) * layout.row_height), 1.0, origin).y
+	# 发光安全线（非死亡线，触线即掉）
+	var line_y: float = BoardCamera.deadline_line_y(game.deadline_row, layout.row_height, layout.radius, origin.y)
 	var x0 := Ui.BOARD_MARGIN_X
 	var x1 := Ui.SCREEN_W - Ui.BOARD_MARGIN_X
 	var glow := Ui.DEADLINE

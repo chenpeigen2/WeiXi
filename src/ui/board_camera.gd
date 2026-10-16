@@ -22,3 +22,16 @@ static func to_screen(board_pos: Vector2, scale: float, origin: Vector2) -> Vect
 
 static func to_board(screen_pos: Vector2, scale: float, origin: Vector2) -> Vector2:
 	return (screen_pos - origin) / scale
+
+
+## 底线：触线即掉那一行(deadline_row)球的下沿，球碰线就掉
+static func deadline_line_y(deadline_row: int, row_height: float, radius: float, origin_y: float) -> float:
+	return origin_y + deadline_row * row_height + radius
+
+
+## 区域标注框下边界：底线 + 12px 留白
+const PANEL_BOTTOM_PAD := 12.0
+
+
+static func panel_bottom(deadline_row: int, row_height: float, radius: float, origin_y: float) -> float:
+	return deadline_line_y(deadline_row, row_height, radius, origin_y) + PANEL_BOTTOM_PAD
