@@ -9,6 +9,7 @@ const INVALID_CELL := Vector2i(-999, -999)
 
 var game: RefCounted
 var selected := INVALID_CELL
+var hidden_cells := {} # 互换动画期间被覆盖层接管、暂停绘制的格子
 
 var _panel: StyleBoxFlat
 
@@ -42,6 +43,8 @@ func _draw() -> void:
 	# 球（滑出顶部的行隐藏不画）
 	var r: float = layout.radius
 	for cell in game.board.cells:
+		if hidden_cells.has(cell):
+			continue
 		var pos: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(cell), 1.0, origin)
 		if pos.y < Ui.BOARD_TOP - r:
 			continue

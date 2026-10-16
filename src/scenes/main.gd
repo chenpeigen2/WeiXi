@@ -116,7 +116,10 @@ func _fire() -> void:
 
 
 func _swap_at(pos: Vector2) -> void:
-	var c: Vector2i = game.layout.pixel_to_cell(BoardCamera.to_board(pos, 1.0, _cam_origin()))
+	if fx_layer.is_swapping():
+		return # 动画期间锁输入
+	var o := _cam_origin()
+	var c: Vector2i = game.layout.pixel_to_cell(BoardCamera.to_board(pos, 1.0, o))
 	if not game.board.has_ball(c):
 		selected = INVALID_CELL
 	elif selected == INVALID_CELL:
@@ -124,11 +127,27 @@ func _swap_at(pos: Vector2) -> void:
 	elif c == selected:
 		selected = INVALID_CELL
 	else:
-		var before: Dictionary = game.board.cells.duplicate()
-		var res: Dictionary = game.try_swap(selected, c)
-		if res["matched"]:
-			_spawn_effects(res, before)
+		var a := selected
 		selected = INVALID_CELL
+		var before: Dictionary = game.board.cells.duplicate()
+		var res: Dictionary = game.try_swap(a, c)
+		var pos_a := BoardCamera.to_screen(game.layout.cell_to_pixel(a), 1.0, o)
+		var pos_b := BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
+		var color_a: Color = Ui.BALL_COLORS[before[a]]
+		var color_b: Color = Ui.BALL_COLORS[before[c]]
+		var r: float = game.layout.radius * 0.95
+		board_view.hidden_cells = {a: true, c: true}
+		if res["matched"]:
+			fx_layer.play_swap(pos_a, pos_b, color_a, color_b, r, false, 0.16, func() -> void:
+				board_view.hidden_cells = {}
+				_spawn_effects(res, before)
+				refresh()
+			)
+		else:
+			fx_layer.play_swap(pos_a, pos_b, color_a, color_b, r, true, 0.28, func() -> void:
+				board_view.hidden_cells = {}
+				refresh()
+			)
 	refresh()
 
 
