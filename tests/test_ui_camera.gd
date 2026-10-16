@@ -13,13 +13,13 @@ func test_scale_always_one_no_shrink() -> void:
 
 func test_origin_top_aligned_when_fits() -> void:
 	# 12行总高 12*57.1577+66 ≈ 752 < 870 → 顶对齐, x 居中 (750-660)/2=45
-	assert_vec_near(BoardCamera.origin_for(12, RH, 66.0, 660.0), Vector2(45, 96))
+	assert_vec_near(BoardCamera.origin_for(12, RH, 66.0, 660.0), Vector2(45, 129))
 
 
 func test_origin_slides_up_when_tall() -> void:
 	# 20行总高 20*57.1577+66 ≈ 1209.2, 超出870的部分上滑
 	var o := BoardCamera.origin_for(20, RH, 66.0, 660.0)
-	assert_vec_near(o, Vector2(45, 96.0 - (20.0 * RH + 66.0 - 870.0)), "顶部溢出上滑")
+	assert_vec_near(o, Vector2(45, 129.0 - (20.0 * RH + 66.0 - 870.0)), "顶部溢出上滑")
 
 
 func test_screen_board_roundtrip() -> void:

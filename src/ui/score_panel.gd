@@ -12,8 +12,8 @@ var _pill: StyleBoxFlat
 
 
 func _ready() -> void:
-	position = Vector2(24, 18)
-	size = Vector2(405, 66)
+	position = Vector2(24, 12)
+	size = Vector2(440, 60)
 	custom_minimum_size = size
 
 	_panel = StyleBoxFlat.new()
@@ -27,14 +27,14 @@ func _ready() -> void:
 	_pill.set_corner_radius_all(12)
 
 	_score_label = Label.new()
-	_score_label.position = Vector2(20, 13)
-	_score_label.add_theme_font_size_override("font_size", 33)
+	_score_label.position = Vector2(20, 11)
+	_score_label.add_theme_font_size_override("font_size", 32)
 	_score_label.add_theme_color_override("font_color", Ui.TEXT_MAIN)
 	add_child(_score_label)
 
 	_combo_label = Label.new()
-	_combo_label.position = Vector2(261, 17)
-	_combo_label.add_theme_font_size_override("font_size", 24)
+	_combo_label.position = Vector2(Ui.COMBO_PILL_X + 15, 15)
+	_combo_label.add_theme_font_size_override("font_size", 23)
 	_combo_label.add_theme_color_override("font_color", Color(0.12, 0.10, 0.05))
 	add_child(_combo_label)
 
@@ -48,4 +48,4 @@ func set_score(score: int, combo: int) -> void:
 
 func _draw() -> void:
 	draw_style_box(_panel, Rect2(Vector2.ZERO, size))
-	draw_style_box(_pill, Rect2(Vector2(246, 13), Vector2(138, 40)))
+	draw_style_box(_pill, Rect2(Vector2(Ui.COMBO_PILL_X, 11), Vector2(138, 38)))
