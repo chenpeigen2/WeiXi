@@ -29,6 +29,14 @@ static func deadline_line_y(deadline_row: int, row_height: float, radius: float,
 	return origin_y + deadline_row * row_height + radius
 
 
+## 区域标注框上沿：顶行球上沿(origin_y - 半径)再留 10px
+const PANEL_TOP_PAD := 10.0
+
+
+static func panel_top(origin_y: float, radius: float) -> float:
+	return origin_y - radius - PANEL_TOP_PAD
+
+
 ## 区域标注框下边界：底线 + 12px 留白
 const PANEL_BOTTOM_PAD := 12.0
 

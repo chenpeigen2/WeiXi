@@ -33,12 +33,13 @@ func _draw() -> void:
 	var origin := cam_origin()
 
 	# 背板：区域标注框，紧贴球区（上沿顶行球留白，下沿贴底线）
+	var panel_top_y: float = BoardCamera.panel_top(origin.y, layout.radius)
 	var panel_bottom_y: float = BoardCamera.panel_bottom(game.deadline_row, layout.row_height, layout.radius, origin.y)
 	draw_style_box(_panel, Rect2(
 		Ui.BOARD_MARGIN_X - 8,
-		Ui.BOARD_TOP - 10,
+		panel_top_y,
 		Ui.SCREEN_W - (Ui.BOARD_MARGIN_X - 8) * 2,
-		panel_bottom_y - (Ui.BOARD_TOP - 10)
+		panel_bottom_y - panel_top_y
 	))
 
 	# 球（滑出顶部的行隐藏不画）

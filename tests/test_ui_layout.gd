@@ -29,3 +29,12 @@ func test_panel_bottom_hugs_deadline() -> void:
 	# 区域标注框的下边界 = 底线 + 12px 留白, 不得拖出大片空白
 	var panel_bottom: float = BoardCamera.panel_bottom(13, 57.1577, 33.0, 129.0)
 	assert_true(abs(panel_bottom - 917.05) < 0.1, "框底贴着底线, 实际 %.2f" % panel_bottom)
+
+
+func test_panel_top_covers_top_row_balls() -> void:
+	# 独立真值: 框上沿必须包住顶行球(球上沿=origin_y-半径), 再留10px
+	var panel_top: float = BoardCamera.panel_top(129.0, 33.0)
+	var ball_top: float = 129.0 - 33.0
+	assert_true(abs(panel_top - 86.0) < 0.1, "框上沿=球上沿-10, 实际 %.2f" % panel_top)
+	assert_true(panel_top < ball_top, "框上沿必须在球上沿之上, 不得露出球顶")
+	assert_true(panel_top > 72.0, "框不得压到HUD(底72)")
