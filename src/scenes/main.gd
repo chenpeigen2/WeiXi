@@ -83,7 +83,12 @@ func refresh() -> void:
 	shooter.queue_redraw()
 	picker.set_current(game.current_color)
 	score_panel.set_score(game.scorer.score, game.scorer.combo)
-	hint_label.visible = game.should_hint_match3()
+	if color_popup.active:
+		hint_label.text = "给这颗球选个颜色"
+		hint_label.visible = true
+	else:
+		hint_label.text = "点两个相邻球互换!"
+		hint_label.visible = game.should_hint_match3()
 	_update_preview()
 
 
@@ -121,7 +126,7 @@ func _try_cycle_board_ball(pos: Vector2) -> void:
 	var c: Vector2i = game.layout.pixel_to_cell(BoardCamera.to_board(pos, 1.0, _cam_origin()))
 	if not game.board.has_ball(c):
 		return
-	selected = INVALID_CELL
+	selected = c # 框选目标球，明确正在改哪颗
 	_popup_cell = c
 	color_popup.open_at(pos)
 	refresh()
@@ -131,9 +136,13 @@ func _apply_popup_tap(pos: Vector2) -> void:
 	var i: int = color_popup.hit(pos)
 	color_popup.close()
 	if i < 0:
+		selected = INVALID_CELL
+		_popup_cell = INVALID_CELL
+		refresh()
 		return # 点外取消
 	var before: Dictionary = game.board.cells.duplicate()
 	var res: Dictionary = game.set_ball_color(_popup_cell, i)
+	selected = INVALID_CELL
 	_popup_cell = INVALID_CELL
 	if not res["popped"].is_empty():
 		_spawn_effects(res, before)

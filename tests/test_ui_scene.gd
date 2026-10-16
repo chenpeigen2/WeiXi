@@ -18,6 +18,32 @@ func test_main_scene_components_exist() -> void:
 	node.free()
 
 
+func test_double_click_marks_target_ball() -> void:
+	var node := _instantiate_main()
+	var pos: Vector2 = node.board_view.cam_origin() # cell(0,0) 的屏幕位置
+	node._try_cycle_board_ball(pos)
+	assert_true(node.color_popup.active, "调色板打开")
+	assert_eq(node.board_view.selected, Vector2i(0, 0), "目标球被框选")
+	assert_true(node.hint_label.visible, "有操作提示")
+	# 点选第2个颜色 → 球变成该色
+	var swatch: Vector2 = node.color_popup.swatch_pos(node.color_popup._center, 2)
+	node._apply_popup_tap(swatch)
+	assert_eq(node.game.board.get_color(Vector2i(0, 0)), 2, "换成选中色")
+	assert_false(node.color_popup.active, "调色板关闭")
+	assert_eq(node.board_view.selected, node.INVALID_CELL, "框选解除")
+	node.free()
+
+
+func test_popup_tap_outside_cancels_and_unmarks() -> void:
+	var node := _instantiate_main()
+	var pos: Vector2 = node.board_view.cam_origin()
+	node._try_cycle_board_ball(pos)
+	node._apply_popup_tap(Vector2(10, 700)) # 点空白取消
+	assert_false(node.color_popup.active, "调色板关闭")
+	assert_eq(node.board_view.selected, node.INVALID_CELL, "框选解除")
+	node.free()
+
+
 func test_score_panel_updates_after_scoring() -> void:
 	var node := _instantiate_main()
 	node.game.board = Board.new(10, 12)
