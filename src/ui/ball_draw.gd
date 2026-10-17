@@ -21,22 +21,38 @@ static func _circle(ci: CanvasItem, pos: Vector2, r: float, color: Color) -> voi
 	ci.draw_circle(pos, r, color, true, -1.0, true)
 
 
+## 真正的逐顶点径向渐变：一个三角扇，中心色 -> 边缘色。
+## 128 段在 8K 下弦高 < 0.15px；不是贴图，也不会出现单多边形的 0° 接缝。
+static func _gradient_disc(ci: CanvasItem, pos: Vector2, r: float, core: Color, edge: Color, segments := 128) -> void:
+	var points := PackedVector2Array()
+	var colors := PackedColorArray()
+	var indices := PackedInt32Array()
+	points.append(pos)
+	colors.append(core)
+	for i in range(segments):
+		var a := TAU * float(i) / float(segments)
+		points.append(pos + Vector2(cos(a), sin(a)) * r)
+		colors.append(edge)
+	for i in range(segments):
+		indices.append(0)
+		indices.append(1 + i)
+		indices.append(1 + ((i + 1) % segments))
+	RenderingServer.canvas_item_add_triangle_array(ci.get_canvas_item(), indices, points, colors)
+
+
 static func _draw_crisp(ci: CanvasItem, pos: Vector2, r: float, color: Color, alpha: float) -> void:
-	# 多层同心圆做径向渐变：没有接缝，放大到任意尺寸都平滑。
+	# 逐顶点三角扇径向渐变：没有接缝，2K/4K/8K 放大都不会出现色带。
 	# 这不是贴图，等价于 VectorDrawable 的渐变填充 + 路径裁剪。
 	var core := color.lightened(0.14)
 	core.a *= alpha
 	var edge := color.darkened(0.32)
 	edge.a *= alpha
-	var rings := 20
-	for i in range(rings):
-		var t := float(i) / float(rings - 1) # 0=边缘, 1=球心
-		var rr: float = r * (1.0 - t * 0.94)
-		_circle(ci, pos, rr, edge.lerp(core, t))
-	# 1px 深色外圈：让小球边缘“收住”，在深色面板上更锐利
-	var outline := color.darkened(0.55)
-	outline.a *= alpha
-	ci.draw_arc(pos, r - 0.6, 0, TAU, 40, outline, 1.2, true)
+	# 先铺一个抗锯齿的深色圆，再把渐变盘盖上去，形成干净的 1.2px 深色外圈。
+	# 外缘由 draw_circle(antialiased=true) 负责，不会有 arc 细线在低分辨率下发虚/发点。
+	# 抗锯齿边缘色圆 + 同色边的三角扇渐变：外缘由 draw_circle 抗锯齿，
+	# 渐变盘的硬边被同色圆完全盖住，不会出现点状锯齿。
+	_circle(ci, pos, r, edge)
+	_gradient_disc(ci, pos, r - 1.2, core, edge, 1024)
 
 	# 左上柔光（两层渐变） + 白色高光点
 	var gloss := color.lightened(0.42)
