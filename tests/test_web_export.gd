@@ -23,3 +23,11 @@ func test_web_page_centers_canvas() -> void:
 	assert_true("justify-content: center" in html or "justify-content:center" in html, "水平居中")
 	assert_true("align-items: center" in html or "align-items:center" in html, "垂直居中")
 	assert_true("max-height: 100vh" in html or "max-height:100vh" in html, "整体等比适配不裁切")
+
+
+func test_game_content_scales_to_fit_any_window() -> void:
+	# 独立真值: 750x1275 内容必须完整显示在任意窗口里 → stretch=canvas_items + aspect=keep
+	var cfg := ConfigFile.new()
+	assert_eq(cfg.load("res://project.godot"), OK, "project.godot 可解析")
+	assert_eq(cfg.get_value("display", "window/stretch/mode", ""), "canvas_items", "内容等比缩放")
+	assert_eq(cfg.get_value("display", "window/stretch/aspect", ""), "keep", "完整显示不裁切")
