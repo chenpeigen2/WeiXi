@@ -22,15 +22,22 @@ static func _simulate(board, layout, from: Vector2, dir: Vector2, board_pixel_wi
 	var vel: Vector2 = dir.normalized() * (layout.radius * 0.25)
 	var cell := Vector2i(-999, -999)
 	var bounces := 0
+	var bounce_points := PackedVector2Array()
 	for i in range(MAX_STEPS):
 		pos += vel
-		# 侧墙反弹（球心活动范围 [R, 宽-R]）
-		if pos.x < layout.radius:
-			pos.x = 2.0 * layout.radius - pos.x
+		# 侧墙反弹：六边形球区物理范围是 [-R, W*D]。
+		# 球心左边界是 0（球左沿 -R），右边界是 W*D-R（球右沿 W*D）。
+		# 旧代码左右都用 R，导致左墙提前一个半径反弹。
+		var left_bound := 0.0
+		var right_bound: float = board_pixel_width - layout.radius
+		if pos.x < left_bound:
+			bounce_points.append(Vector2(left_bound, pos.y))
+			pos.x = 2.0 * left_bound - pos.x
 			vel.x = -vel.x
 			bounces += 1
-		elif pos.x > board_pixel_width - layout.radius:
-			pos.x = 2.0 * (board_pixel_width - layout.radius) - pos.x
+		elif pos.x > right_bound:
+			bounce_points.append(Vector2(right_bound, pos.y))
+			pos.x = 2.0 * right_bound - pos.x
 			vel.x = -vel.x
 			bounces += 1
 		# 路径采样
@@ -58,7 +65,7 @@ static func _simulate(board, layout, from: Vector2, dir: Vector2, board_pixel_wi
 			break
 	if max_points > 0:
 		points.append(pos)
-	return {"cell": cell, "points": points, "bounces": bounces}
+	return {"cell": cell, "points": points, "bounces": bounces, "bounce_points": bounce_points}
 
 
 static func _nearest_empty_in_row(board, layout, pos: Vector2, r: int) -> Vector2i:

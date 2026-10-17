@@ -17,6 +17,7 @@ var _flight: Dictionary = {} # {path,total,d,speed,pos,color,cb}
 var _preview_points := PackedVector2Array()
 var _preview_target := Vector2.ZERO
 var _preview_color := 0
+var _preview_bounces := PackedVector2Array()
 
 
 ## 瞄准方向限制在水平线以上，并保持单位向量
@@ -34,10 +35,11 @@ func set_aim(dir: Vector2) -> void:
 	queue_redraw()
 
 
-func set_preview(points: PackedVector2Array, target: Vector2, color: int) -> void:
+func set_preview(points: PackedVector2Array, target: Vector2, color: int, bounces := PackedVector2Array()) -> void:
 	_preview_points = points
 	_preview_target = target
 	_preview_color = color
+	_preview_bounces = bounces
 	queue_redraw()
 
 
@@ -106,6 +108,13 @@ func _draw() -> void:
 			var dot := Ui.INK
 			dot.a = lerpf(0.58, 0.18, t)
 			draw_circle(pt, 4.0, dot)
+		for bp in _preview_bounces:
+			var bounce := Ui.BALL_COLORS[_preview_color]
+			bounce.a = 0.10
+			draw_circle(bp, r * 0.92, bounce)
+			var bounce_ring := Ui.BALL_COLORS[_preview_color]
+			bounce_ring.a = 0.35
+			draw_arc(bp, r, 0, TAU, 32, bounce_ring, 1.5, true)
 		if not _preview_points.is_empty():
 			# alpha 0.30 的橙球叠在深蓝上会发褐；提高填充并加同色描边。
 			var ghost := Ui.BALL_COLORS[_preview_color]

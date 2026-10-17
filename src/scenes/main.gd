@@ -460,7 +460,13 @@ func _trace_screen() -> Dictionary:
 	if trace["cell"] != INVALID_CELL:
 		target = BoardCamera.to_screen(game.layout.cell_to_pixel(trace["cell"]), 1.0, o)
 		pts.append(target)
-	return {"cell": trace["cell"], "path": pts, "target": target, "bounces": trace.get("bounces", 0)}
+	var bounce_pts := PackedVector2Array()
+	for bp in trace.get("bounce_points", []):
+		bounce_pts.append(BoardCamera.to_screen(bp, 1.0, o))
+	return {
+		"cell": trace["cell"], "path": pts, "target": target,
+		"bounces": trace.get("bounces", 0), "bounce_points": bounce_pts,
+	}
 
 
 func _update_preview() -> void:
@@ -473,7 +479,7 @@ func _update_preview() -> void:
 		return
 	var pts: PackedVector2Array = tr["path"]
 	pts.remove_at(0) # 预览点流不含发射器中心
-	shooter.set_preview(pts, tr["target"], game.current_color)
+	shooter.set_preview(pts, tr["target"], game.current_color, tr["bounce_points"])
 
 
 # ---------- HUD 回调 ----------
