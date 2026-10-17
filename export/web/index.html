@@ -94,18 +94,18 @@ body {
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 res://tools/web_head.html
 	<style>
-  /* 画布居中 + 等比适配窗口（不裁切、不顶角） */
+  /* weixi-shell: 画布居中 + 等比适配 + 桌面端圆角画框 */
   html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    background: #0f1020;
   }
   body {
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    background: radial-gradient(circle at 50% 18%, #1b1c36 0%, #0e0f1f 52%, #070811 100%);
   }
   canvas {
     display: block;
@@ -113,6 +113,10 @@ res://tools/web_head.html
     max-height: 100vh;
     width: auto;
     height: auto;
+    border-radius: 24px;
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(255, 255, 255, 0.06);
   }
 </style>
 
@@ -134,7 +138,7 @@ res://tools/web_head.html
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":1405868,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":1989300,"index.wasm":39513091},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
