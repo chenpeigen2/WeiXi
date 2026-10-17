@@ -1,0 +1,22 @@
+<style>
+  /* 画布居中 + 等比适配窗口（不裁切、不顶角） */
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #0f1020;
+  }
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    max-width: 100vw;
+    max-height: 100vh;
+    width: auto;
+    height: auto;
+  }
+</style>
