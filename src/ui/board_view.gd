@@ -5,6 +5,7 @@ extends Node2D
 const Ui = preload("res://src/ui/theme.gd")
 const BallDraw = preload("res://src/ui/ball_draw.gd")
 const BoardCamera = preload("res://src/ui/board_camera.gd")
+const BoardPanel = preload("res://src/ui/board_panel.gd")
 
 const INVALID_CELL := Vector2i(-999, -999)
 
@@ -13,18 +14,26 @@ var selected := INVALID_CELL
 var hidden_cells := {} # 互换动画期间被覆盖层接管、暂停绘制的格子
 var _landings: Array[Dictionary] = []
 
-var _panel: StyleBoxFlat
+var _panel_mat: Panel
+var _panel_glow: Control
 
 
 func _ready() -> void:
-	_panel = StyleBoxFlat.new()
-	_panel.bg_color = Ui.PANEL
-	_panel.border_color = Ui.MINT
-	_panel.set_border_width_all(1)
-	_panel.set_corner_radius_all(int(Ui.PANEL_RADIUS_LARGE))
-	_panel.shadow_color = Color(0, 0, 0, 0.22)
-	_panel.shadow_size = 16
-	_panel.shadow_offset = Vector2(0, 6)
+	var mat := StyleBoxFlat.new()
+	mat.bg_color = Color(0.80, 0.73, 0.95, 0.30)
+	mat.set_corner_radius_all(38)
+	mat.shadow_color = Color(0.36, 0.22, 0.30, 0.18)
+	mat.shadow_size = 20
+	mat.shadow_offset = Vector2(0, 8)
+	_panel_mat = Panel.new()
+	_panel_mat.name = "PanelMat"
+	_panel_mat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_panel_mat.show_behind_parent = true
+	_panel_mat.add_theme_stylebox_override("panel", mat)
+	add_child(_panel_mat)
+	_panel_glow = BoardPanel.new()
+	_panel_glow.name = "PanelGlow"
+	add_child(_panel_glow)
 
 
 func cam_origin() -> Vector2:
@@ -40,12 +49,19 @@ func _draw() -> void:
 	# 背板：区域标注框，紧贴球区（上沿顶行球留白，下沿贴底线）
 	var panel_top_y: float = BoardCamera.panel_top(origin.y, layout.radius)
 	var panel_bottom_y: float = BoardCamera.panel_bottom(game.deadline_row, layout.row_height, layout.radius, origin.y)
-	draw_style_box(_panel, Rect2(
+	var panel_rect := Rect2(
 		Ui.BOARD_PANEL_X,
 		panel_top_y,
 		Ui.BOARD_PANEL_W,
 		panel_bottom_y - panel_top_y
-	))
+	)
+	if _panel_mat != null:
+		var mat_rect := panel_rect.grow(8.0)
+		_panel_mat.position = mat_rect.position
+		_panel_mat.size = mat_rect.size
+	if _panel_glow != null:
+		_panel_glow.set_panel(panel_rect)
+	_bow(Vector2(panel_rect.get_center().x, panel_top_y + 1.0), 10.0)
 
 	# 顶部高光 + 奶油花边：小圆点沿着上下边缘，像糖霜。
 	draw_line(
@@ -59,17 +75,10 @@ func _draw() -> void:
 		draw_circle(Vector2(dot_x, panel_top_y + 9.0), 2.2, lace)
 		draw_circle(Vector2(dot_x, panel_bottom_y - 9.0), 2.2, lace)
 		dot_x += 26.0
-	_heart(Vector2(Ui.BOARD_PANEL_X + 20.0, panel_top_y + 20.0), 5.0, Ui.ROSE, 0.75)
-	_heart(Vector2(Ui.BOARD_PANEL_X + Ui.BOARD_PANEL_W - 20.0, panel_top_y + 20.0), 5.0, Ui.ROSE, 0.75)
-	# 很淡的波点糖霜，藏在球后面
-	var dot := Color(0.80, 0.73, 0.95, 0.10)
-	for gy in range(3):
-		for gx in range(5):
-			draw_circle(Vector2(
-				Ui.BOARD_PANEL_X + 64.0 + gx * 142.0,
-				panel_top_y + 96.0 + gy * 250.0
-			), 3.2, dot)
-
+	_heart(Vector2(panel_rect.position.x + 4.0, panel_top_y - 4.0), 5.0, Ui.ROSE, 0.8)
+	_heart(Vector2(panel_rect.end.x - 4.0, panel_top_y - 4.0), 5.0, Ui.ROSE, 0.8)
+	_heart(Vector2(panel_rect.position.x + 4.0, panel_bottom_y + 4.0), 4.5, Ui.ROSE, 0.6)
+	_heart(Vector2(panel_rect.end.x - 4.0, panel_bottom_y + 4.0), 4.5, Ui.ROSE, 0.6)
 	# 空棋盘上的奶油暗纹：大爱心 + 小星星，填一点可爱但不抢球。
 	_heart(Vector2(Ui.SCREEN_W * 0.5, panel_bottom_y - 130.0), 30.0, Ui.ROSE, 0.055)
 	for star_pos in [Vector2(120, panel_top_y + 390), Vector2(628, panel_top_y + 470), Vector2(548, panel_top_y + 170)]:
@@ -184,6 +193,18 @@ func _heart(p: Vector2, s: float, c: Color, a: float) -> void:
 	draw_colored_polygon(PackedVector2Array([
 		p + Vector2(-s * 0.82, -s * 0.05), p + Vector2(s * 0.82, -s * 0.05), p + Vector2(0, s * 0.85),
 	]), col)
+
+
+func _bow(p: Vector2, s: float) -> void:
+	draw_colored_polygon(PackedVector2Array([
+		p, p + Vector2(-s, -s * 0.62), p + Vector2(-s, s * 0.62),
+	]), Ui.MINT)
+	draw_colored_polygon(PackedVector2Array([
+		p, p + Vector2(s, -s * 0.62), p + Vector2(s, s * 0.62),
+	]), Ui.ROSE)
+	draw_circle(p, s * 0.27, Ui.PANEL)
+	draw_circle(p - Vector2(s * 0.7, 0), s * 0.22, Ui.PANEL_SOFT)
+	draw_circle(p + Vector2(s * 0.7, 0), s * 0.22, Ui.PANEL_SOFT)
 
 
 func _star(p: Vector2, s: float, c: Color) -> void:
