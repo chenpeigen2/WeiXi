@@ -4,6 +4,7 @@ extends RefCounted
 const Board = preload("res://src/logic/board.gd")
 const Scorer = preload("res://src/logic/scorer.gd")
 const HexLayout = preload("res://src/logic/hex_layout.gd")
+const HexGrid = preload("res://src/logic/hex_grid.gd")
 const Trajectory = preload("res://src/logic/trajectory.gd")
 const WishSystem = preload("res://src/logic/wish_system.gd")
 
@@ -21,6 +22,7 @@ var layout: RefCounted
 var rng: RandomNumberGenerator
 var current_color := 0
 var next_color := 0
+var star_shot := false # 下一发是否为星星炸弹
 var deadline_row := MAX_ROWS - 1 # 固定底线
 
 
@@ -54,7 +56,8 @@ func set_ball_color(cell: Vector2i, color: int) -> Dictionary:
 	board.cells[cell] = color
 	res = board.resolve_at(cell)
 	if not res["popped"].is_empty():
-		res["gain"] = scorer.register_clear(res["popped"].size(), res["dropped"].size())
+		_prepare_clear(res)
+		res["gain"] = scorer.register_clear(res["popped"].size(), res["dropped"].size(), false)
 		_notify_clear(res)
 	else:
 		res["gain"] = 0
@@ -69,14 +72,22 @@ func set_ball_color(cell: Vector2i, color: int) -> Dictionary:
 ## 新球不陪葬，掉行后失去支撑的悬空球跟着掉。
 func attach_ball(cell: Vector2i, color := -1, bounces := 0) -> Dictionary:
 	var ball_color := current_color if color < 0 else color
+	var fever_shot: bool = scorer.fever_shots > 0
+	var bomb := star_shot
+	star_shot = false
 	var overflow: Array[Vector2i] = []
 	if board.lowest_occupied_row() >= deadline_row:
 		overflow = board.drop_overflow(deadline_row)
 		overflow.append_array(_drop_floating())
 	board.set_ball(cell, ball_color)
-	var res: Dictionary = board.resolve_at(cell)
+	var res: Dictionary
+	if bomb:
+		res = _star_burst(cell)
+	else:
+		res = board.resolve_at(cell)
+		_prepare_clear(res)
 	res["cell"] = cell
-	_score_result(res)
+	_score_result(res, fever_shot)
 
 	# 反弹奖励：不改变落球规则，只给技巧发糖。
 	if bounces > 0:
@@ -99,6 +110,9 @@ func attach_ball(cell: Vector2i, color := -1, bounces := 0) -> Dictionary:
 	res["overflow"] = overflow
 	current_color = next_color
 	next_color = _rand_color()
+	# “3 发”按发射严格消耗，空枪也算。
+	if fever_shot:
+		scorer.fever_shots -= 1
 	return res
 
 
@@ -106,7 +120,8 @@ func attach_ball(cell: Vector2i, color := -1, bounces := 0) -> Dictionary:
 func try_swap(a: Vector2i, b: Vector2i) -> Dictionary:
 	var res: Dictionary = board.swap(a, b)
 	if res["matched"]:
-		_score_result(res)
+		_prepare_clear(res)
+		_score_result(res, false)
 		_after_board_change(res, false)
 	return res
 
@@ -121,12 +136,12 @@ func aim_attach(from: Vector2, dir: Vector2) -> Vector2i:
 	return Trajectory.find_attach_cell(board, layout, from, dir, WIDTH * layout.diameter)
 
 
-func _score_result(res: Dictionary) -> void:
+func _score_result(res: Dictionary, fever := false) -> void:
 	if res["popped"].is_empty():
 		scorer.register_miss()
 		res["gain"] = 0
 	else:
-		res["gain"] = scorer.register_clear(res["popped"].size(), res["dropped"].size())
+		res["gain"] = scorer.register_clear(res["popped"].size(), res["dropped"].size(), fever)
 		_notify_clear(res)
 
 
@@ -136,6 +151,78 @@ func _notify_clear(res: Dictionary) -> void:
 		"colors": res.get("color_counts", {}),
 		"combo": scorer.combo,
 	})
+
+
+## 5+：下一发变成星星炸弹；7+：立刻彩虹洗色。
+## 星星炸弹本身不再连锁触发，避免一发自爆刷屏。
+func _prepare_clear(res: Dictionary) -> void:
+	if res["popped"].is_empty():
+		return
+	if res["popped"].size() >= 7:
+		_rainbow_wash(res)
+	if res["popped"].size() >= 5:
+		star_shot = true
+		res["star_armed"] = true
+
+
+## 彩虹洗色：清掉棋盘上剩余的所有“主色”球。
+func _rainbow_wash(res: Dictionary) -> void:
+	var counts: Dictionary = res.get("color_counts", {})
+	if counts.is_empty():
+		return
+	var color := -1
+	var best := 0
+	for c in counts:
+		var n := int(counts[c])
+		if n > best:
+			best = n
+			color = int(c)
+	if color < 0:
+		return
+	var washed: Array[Vector2i] = []
+	for c in board.cells.keys():
+		if board.cells[c] == color:
+			washed.append(c)
+	if washed.is_empty():
+		return
+	for c in washed:
+		board.remove_ball(c)
+	var popped: Array = res["popped"]
+	popped.append_array(washed)
+	res["popped"] = popped
+	counts[color] = int(counts.get(color, 0)) + washed.size()
+	res["color_counts"] = counts
+	var fl: Array[Vector2i] = board.floating()
+	for c in fl:
+		board.remove_ball(c)
+	var dropped: Array = res["dropped"]
+	dropped.append_array(fl)
+	res["dropped"] = dropped
+	res["rainbow"] = true
+
+
+## 星星炸弹：清掉落点周围一圈（含落点）。
+func _star_burst(cell: Vector2i) -> Dictionary:
+	var cells: Array[Vector2i] = [cell]
+	cells.append_array(HexGrid.neighbors(cell))
+	var popped: Array[Vector2i] = []
+	var counts := {}
+	for c in cells:
+		if not board.has_ball(c):
+			continue
+		var col: int = board.get_color(c)
+		counts[col] = counts.get(col, 0) + 1
+		board.remove_ball(c)
+		popped.append(c)
+	var fl: Array[Vector2i] = board.floating()
+	for c in fl:
+		board.remove_ball(c)
+	return {
+		"popped": popped,
+		"dropped": fl,
+		"color_counts": counts,
+		"star_burst": true,
+	}
 
 
 func _notify_wish(event: String, data: Dictionary) -> void:

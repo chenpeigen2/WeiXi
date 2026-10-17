@@ -2,6 +2,7 @@ extends "res://tests/test_case.gd"
 
 const Game = preload("res://src/logic/game.gd")
 const Board = preload("res://src/logic/board.gd")
+const HexGrid = preload("res://src/logic/hex_grid.gd")
 
 
 func test_new_game_initial_state() -> void:
@@ -180,7 +181,7 @@ func test_overflow_drop_gives_star_dust() -> void:
 	var res: Dictionary = g.attach_ball(Vector2i(5, 13))
 	assert_true(res["overflow"].size() > 0, "掉行发生")
 	assert_true(int(res["overflow_star"]) > 0, "掉行给星尘")
-	assert_true(g.scorer.star > before or g.scorer.fever_charges > 0, "星星增加或进入 Fever")
+	assert_true(g.scorer.star > before or g.scorer.fever_shots > 0, "星星增加或进入 Fever")
 
 
 func test_clear_notifies_wish_progress() -> void:
@@ -194,3 +195,93 @@ func test_clear_notifies_wish_progress() -> void:
 	g.attach_ball(Vector2i(0, 1))
 	assert_true(g.wishes.completion_count >= before, "愿望系统参与结算")
 	assert_true(g.wishes.active != null, "始终有一条愿望")
+
+
+func test_fever_shot_consumes_even_on_miss() -> void:
+	var g := Game.new(1)
+	g.board = Board.new(10, 12)
+	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
+	g.scorer.add_star(100)
+	g.set_current_color(2)
+	g.attach_ball(Vector2i(0, 1)) # 空枪
+	assert_eq(g.scorer.fever_shots, 2, "空枪也消耗一发")
+
+
+func test_fever_shot_doubles_clear() -> void:
+	var g := Game.new(1)
+	g.board = Board.new(10, 12)
+	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
+	g.board.set_ball(Vector2i(0, 0), 1)
+	g.board.set_ball(Vector2i(1, 0), 1)
+	g.set_current_color(1)
+	g.scorer.add_star(100)
+	var res: Dictionary = g.attach_ball(Vector2i(0, 1))
+	assert_eq(res["popped"].size(), 3)
+	assert_eq(res["gain"], 60, "Fever 射击 x2")
+	assert_eq(g.scorer.fever_shots, 2)
+
+
+func test_swap_during_fever_neither_doubles_nor_consumes() -> void:
+	var g := Game.new(1)
+	g.board = Board.new(10, 12)
+	g.board.set_ball(Vector2i(2, 0), 3) # 锚点
+	g.board.set_ball(Vector2i(0, 1), 1)
+	g.board.set_ball(Vector2i(1, 1), 1)
+	g.board.set_ball(Vector2i(2, 1), 2)
+	g.board.set_ball(Vector2i(2, 2), 1)
+	g.scorer.add_star(100)
+	var res: Dictionary = g.try_swap(Vector2i(2, 1), Vector2i(2, 2))
+	assert_true(res["matched"])
+	assert_eq(res["gain"], 50, "互换不享受 Fever x2")
+	assert_eq(g.scorer.fever_shots, 3, "互换不消耗 Fever")
+
+
+func test_five_clear_arms_star_shot() -> void:
+	var g := Game.new(1)
+	g.board = Board.new(10, 12)
+	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
+	for c in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]:
+		g.board.set_ball(c, 1)
+	g.set_current_color(1)
+	var res: Dictionary = g.attach_ball(Vector2i(0, 2))
+	assert_eq(res["popped"].size(), 5, "五连消")
+	assert_true(g.star_shot, "下一发变星星炸弹")
+	assert_true(res.get("star_armed", false))
+
+
+func test_star_shot_bursts_neighbor_ring() -> void:
+	var g := Game.new(1)
+	g.board = Board.new(10, 12)
+	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
+	var center := Vector2i(2, 2)
+	var neighbors: Array[Vector2i] = HexGrid.neighbors(center)
+	g.board.set_ball(center, 2)
+	g.board.set_ball(neighbors[0], 4)
+	g.board.set_ball(neighbors[1], 5)
+	g.star_shot = true
+	g.set_current_color(0)
+	var res: Dictionary = g.attach_ball(center)
+	assert_true(res.get("star_burst", false), "星星炸弹触发")
+	assert_false(g.star_shot, "炸弹消耗")
+	assert_eq(res["popped"].size(), 3, "落点+两个邻居")
+	assert_false(g.board.has_ball(center))
+	assert_false(g.board.has_ball(neighbors[0]))
+
+
+func test_seven_clear_rainbow_washes_color() -> void:
+	var g := Game.new(1)
+	g.board = Board.new(10, 14)
+	# 锚点 + 一条3色竖链，把远处的同色球固定住
+	g.board.set_ball(Vector2i(5, 0), 3)
+	for r in range(1, 6):
+		g.board.set_ball(Vector2i(5, r), 3)
+	g.board.set_ball(Vector2i(5, 6), 1) # 远处同色，洗色目标
+	# 左上 7 连
+	for c in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(0, 1), Vector2i(1, 1), Vector2i(0, 2)]:
+		g.board.set_ball(c, 1)
+	g.set_current_color(1)
+	var res: Dictionary = g.attach_ball(Vector2i(2, 1))
+	assert_true(res.get("rainbow", false), "7+ 触发彩虹洗色")
+	assert_eq(res["popped"].size(), 8, "7连 + 远处同色")
+	assert_false(g.board.has_ball(Vector2i(5, 6)), "洗掉远处同色")
+	assert_true(g.star_shot, "7+ 同时武装星星炸弹")

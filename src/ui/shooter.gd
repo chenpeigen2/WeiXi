@@ -84,7 +84,7 @@ func _draw() -> void:
 	# 底座星能环：白环打底，粉色弧显示当前星星进度；满环进入 Fever。
 	draw_arc(p, r * 1.5, 0, TAU, 64, Color(1, 1, 1, 0.12), 4.0, true)
 	var star_ratio: float = float(game.scorer.star) / 100.0
-	if game.scorer.fever_charges > 0:
+	if game.scorer.fever_shots > 0:
 		var halo := Ui.ACCENT
 		halo.a = 0.10
 		draw_arc(p, r * 1.75, 0, TAU, 64, halo, 8.0, true)
@@ -115,8 +115,14 @@ func _draw() -> void:
 			draw_arc(_preview_target, r * 0.52, 0, TAU, 32, Color(1, 1, 1, 0.55), 1.5, true)
 			draw_circle(_preview_target, 3.0, Color(1, 1, 1, 0.80))
 
-	# 当前球
+	# 当前球；5+ 后下一发是星星炸弹，用光晕 + 星徽提示
+	if game.star_shot:
+		var shot_glow := Ui.ACCENT
+		shot_glow.a = 0.16
+		draw_circle(p, r * 1.16, shot_glow)
 	BallDraw.draw_ball(self, p, r, Ui.BALL_COLORS[game.current_color], 1.0, true)
+	if game.star_shot:
+		_star_marker(p + Vector2(r * 0.72, -r * 0.72), 9.0, Color(1, 1, 1, 0.96))
 
 	# 飞行球
 	if not _flight.is_empty():

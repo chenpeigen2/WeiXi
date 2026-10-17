@@ -89,7 +89,7 @@ func refresh() -> void:
 	deadline_view.queue_redraw()
 	shooter.queue_redraw()
 	picker.set_current(game.current_color)
-	score_panel.set_score(game.scorer.score, game.scorer.combo, game.scorer.fever_charges)
+	score_panel.set_score(game.scorer.score, game.scorer.combo, game.scorer.fever_shots)
 
 	if game.wishes.completion_count != _last_wish_completion:
 		_last_wish_completion = game.wishes.completion_count
@@ -334,6 +334,13 @@ func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 		fx_layer.spawn_score_text(center, gain)
 		if res["popped"].size() >= 6:
 			fx_layer.spawn_text(center - Vector2(0, 54), "好厉害！", 26, Ui.ACCENT)
+
+	if res.get("star_burst", false):
+		fx_layer.spawn_text(Vector2(Ui.SCREEN_W * 0.5, 540.0), "星星泡泡！", 28, Ui.ACCENT)
+	elif res.get("rainbow", false):
+		fx_layer.spawn_text(Vector2(Ui.SCREEN_W * 0.5, 540.0), "彩虹洗色！", 28, Ui.ACCENT)
+	elif res.get("star_armed", false):
+		fx_layer.spawn_text(Vector2(Ui.SCREEN_W * 0.5, 600.0), "星星球准备！", 24, Ui.ACCENT)
 
 	# 反弹 / 掉行的可见回调；分数已经算进 res["gain"] / scorer。
 	var bank_gain: int = int(res.get("bank_gain", 0))
