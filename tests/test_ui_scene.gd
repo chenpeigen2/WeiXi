@@ -77,3 +77,40 @@ func test_deadline_warning_arms_when_lowest_row_reaches_line() -> void:
 	node.game.board.set_ball(Vector2i(0, node.game.deadline_row), 1)
 	assert_true(node.deadline_view.armed(), "最低行触线后进入宽限期警示")
 	node.free()
+
+
+func test_meta_bar_and_sticker_album_exist_and_open() -> void:
+	var node := _instantiate_main()
+	assert_true(node.get_node_or_null("HUD/MetaBar") != null, "底部入口存在")
+	assert_true(node.get_node_or_null("HUD/StickerAlbum") != null, "贴纸册存在")
+	assert_false(node.album.visible, "默认关闭")
+	node._on_stickers()
+	assert_true(node.album.visible, "点击贴纸入口打开")
+	node.album.close()
+	assert_false(node.album.visible, "可关闭")
+	node.free()
+
+
+func test_daily_and_random_reset_game() -> void:
+	var node := _instantiate_main()
+	var old = node.game
+	node._on_daily()
+	assert_true(node.daily_mode, "每日模式")
+	assert_ne(node.game, old, "重新开局")
+	assert_eq(node.game.scorer.score, 0, "分数归零")
+	assert_eq(node.meta_bar.daily, true, "每日入口高亮")
+	assert_eq(node.game.rng.seed, preload("res://src/logic/daily_seed.gd").today_seed(), "每日种子一致")
+	node._on_random()
+	assert_false(node.daily_mode, "随机模式")
+	assert_eq(node.meta_bar.daily, false)
+	node.free()
+
+
+func test_wish_completion_unlocks_stickers() -> void:
+	var node := _instantiate_main()
+	var before: int = node.sticker_book.count()
+	node.game.wishes.completion_count += 3
+	node.refresh()
+	assert_eq(node.sticker_book.count(), mini(before + 3, 12), "完成多条愿望解锁多张贴纸")
+	assert_eq(node.meta_bar.sticker_count, node.sticker_book.count(), "底部计数同步")
+	node.free()

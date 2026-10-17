@@ -54,6 +54,14 @@ func spawn_score_text(pos: Vector2, amount: int, color := Color(1.0, 0.60, 0.74)
 	spawn_text(pos, "+%d" % amount, 24, color, NumericFont)
 
 
+func clear() -> void:
+	_effects.clear()
+	_swap = {}
+	for child in get_children():
+		child.queue_free()
+	queue_redraw()
+
+
 func effect_count() -> int:
 	return _effects.size()
 

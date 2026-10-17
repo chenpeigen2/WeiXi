@@ -15,6 +15,10 @@ const Background = preload("res://src/ui/background.gd")
 const FxLayer = preload("res://src/ui/fx_layer.gd")
 const BallColorPopup = preload("res://src/ui/ball_color_popup.gd")
 const DeadlineView = preload("res://src/ui/deadline_view.gd")
+const MetaBar = preload("res://src/ui/meta_bar.gd")
+const StickerAlbum = preload("res://src/ui/sticker_album.gd")
+const StickerBook = preload("res://src/logic/sticker_book.gd")
+const DailySeed = preload("res://src/logic/daily_seed.gd")
 
 const INVALID_CELL := Vector2i(-999, -999)
 const DRAG_THRESHOLD := 8.0
@@ -30,6 +34,10 @@ var fx_layer: Node2D
 var color_popup: Node2D
 var score_panel: Control
 var hint_label: Label
+var meta_bar: Control
+var album: Control
+var sticker_book: RefCounted
+var daily_mode := false
 
 var _press := {} # {pos,dragging}
 var _coach_step := 0
@@ -37,6 +45,7 @@ var _last_wish_completion := 0
 
 
 func _ready() -> void:
+	sticker_book = StickerBook.new()
 	game = Game.new(randi())
 
 	add_child(_make(Background, "Background"))
@@ -72,6 +81,18 @@ func _ready() -> void:
 	hint_label.add_theme_color_override("font_color", Ui.ACCENT)
 	hud.add_child(hint_label)
 
+	meta_bar = MetaBar.new()
+	meta_bar.name = "MetaBar"
+	meta_bar.set_state(false, sticker_book.count())
+	meta_bar.daily_pressed.connect(_on_daily)
+	meta_bar.random_pressed.connect(_on_random)
+	meta_bar.stickers_pressed.connect(_on_stickers)
+	hud.add_child(meta_bar)
+
+	album = StickerAlbum.new()
+	album.name = "StickerAlbum"
+	hud.add_child(album)
+
 	refresh()
 
 
@@ -92,11 +113,25 @@ func refresh() -> void:
 	score_panel.set_score(game.scorer.score, game.scorer.combo, game.scorer.fever_shots)
 
 	if game.wishes.completion_count != _last_wish_completion:
+		var gained: int = game.wishes.completion_count - _last_wish_completion
 		_last_wish_completion = game.wishes.completion_count
-		fx_layer.spawn_text(
-			Vector2(Ui.SCREEN_W * 0.5, 560.0),
-			"愿望达成！+%d" % game.wishes.last_reward, 28, Ui.ACCENT
-		)
+		var stickers := 0
+		for k in range(maxi(0, gained)):
+			if sticker_book.unlock_next() >= 0:
+				stickers += 1
+		meta_bar.set_state(daily_mode, sticker_book.count())
+		if stickers > 0:
+			fx_layer.spawn_text(
+				Vector2(Ui.SCREEN_W * 0.5, 560.0),
+				"愿望达成！贴纸 +%d" % stickers, 28, Ui.ACCENT
+			)
+		else:
+			fx_layer.spawn_text(
+				Vector2(Ui.SCREEN_W * 0.5, 560.0),
+				"愿望达成！+%d" % game.wishes.last_reward, 28, Ui.ACCENT
+			)
+		if album.visible:
+			album.queue_redraw()
 
 	if color_popup.active:
 		hint_label.text = "给这颗球选个颜色"
@@ -207,6 +242,39 @@ func _apply_popup_tap(pos: Vector2) -> void:
 		_coach_step = 3
 	if not res["popped"].is_empty():
 		_spawn_effects(res, before)
+	refresh()
+
+
+func _on_daily() -> void:
+	_start_new_game(DailySeed.today_seed(), true)
+
+
+func _on_random() -> void:
+	_start_new_game(randi(), false)
+
+
+func _on_stickers() -> void:
+	album.open(sticker_book)
+
+
+func _start_new_game(seed: int, is_daily: bool) -> void:
+	daily_mode = is_daily
+	game = Game.new(seed)
+	board_view.game = game
+	deadline_view.game = game
+	shooter.game = game
+	selected = INVALID_CELL
+	_popup_cell = INVALID_CELL
+	_press = {}
+	_coach_step = 3
+	_last_wish_completion = 0
+	color_popup.close()
+	picker.set_current(game.current_color)
+	shooter.aim_dir = Vector2.UP
+	shooter._flight = {}
+	shooter.set_preview(PackedVector2Array(), Vector2.ZERO, game.current_color)
+	fx_layer.clear()
+	meta_bar.set_state(daily_mode, sticker_book.count())
 	refresh()
 
 
