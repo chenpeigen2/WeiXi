@@ -76,7 +76,7 @@ func _draw() -> void:
 ## 触线提示放在线下方、发射器上方，避免盖住已经触线的球。
 func _draw_warning(line_y: float, base: Color, pulse: float) -> void:
 	var rect := Rect2(Ui.SCREEN_W * 0.5 - 125.0, line_y + 14.0, 250.0, 30.0)
-	_pill.bg_color = Color(0.08, 0.08, 0.14, 0.94)
+	_pill.bg_color = Color(0.14, 0.10, 0.19, 0.94)
 	_pill.border_color = Color(base.r, base.g, base.b, 0.55 + 0.35 * pulse)
 	draw_style_box(_pill, rect)
 	draw_string(

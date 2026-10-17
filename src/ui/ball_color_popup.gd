@@ -44,7 +44,7 @@ static func clamp_center(pos: Vector2) -> Vector2:
 func _ready() -> void:
 	visible = false
 	_panel = StyleBoxFlat.new()
-	_panel.bg_color = Color(0.10, 0.11, 0.17, 0.96)
+	_panel.bg_color = Color(0.14, 0.10, 0.19, 0.96)
 	_panel.border_color = Ui.PANEL_STROKE
 	_panel.set_border_width_all(1)
 	_panel.set_corner_radius_all(int(Ui.PANEL_RADIUS_LARGE))

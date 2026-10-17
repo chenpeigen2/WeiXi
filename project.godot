@@ -20,6 +20,8 @@ config/icon="res://icon.png"
 
 window/size/viewport_width=750
 window/size/viewport_height=1275
+window/size/window_width_override=2160
+window/size/window_height_override=3672
 window/stretch/mode="canvas_items"
 
 [gui]

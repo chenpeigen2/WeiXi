@@ -1,4 +1,6 @@
 extends RefCounted
+const Ui = preload("res://src/ui/theme.gd")
+
 ## 统一糖果球绘制：全部是 _draw 矢量，不依赖任何图片。
 ## 结构：柔和投影 + 薄边 + 1024 段离轴径向渐变 + 左上高光 + 底部反光。
 ## 离轴光照让球有明确的受光面/背光面，4K/8K 下也不会退化成平面圆。
@@ -6,7 +8,7 @@ extends RefCounted
 const SEGMENTS := 1024
 
 
-static func draw_ball(ci: CanvasItem, pos: Vector2, r: float, color: Color, alpha: float = 1.0) -> void:
+static func draw_ball(ci: CanvasItem, pos: Vector2, r: float, color: Color, alpha: float = 1.0, face: bool = false) -> void:
 	if alpha <= 0.001:
 		return
 
@@ -43,6 +45,32 @@ static func draw_ball(ci: CanvasItem, pos: Vector2, r: float, color: Color, alph
 	var rim := color.lightened(0.55)
 	rim.a = 0.28 * alpha
 	ci.draw_arc(pos, r * 0.82, PI * 0.18, PI * 0.82, 48, rim, maxf(1.0, r * 0.045), true)
+
+	if face:
+		_face(ci, pos, r, alpha)
+
+
+## 当前球 / 下一颗的小表情：眼睛 + 高光 + 微笑 + 腮红。
+static func _face(ci: CanvasItem, pos: Vector2, r: float, alpha: float) -> void:
+	var ink := Ui.FACE_INK
+	ink.a *= alpha
+	var blush := Ui.BLUSH
+	blush.a *= alpha
+	var eye_r: float = maxf(1.3, r * 0.055)
+	var eye_y := pos.y + r * 0.02
+	var lx := pos.x - r * 0.22
+	var rx := pos.x + r * 0.22
+	_circle(ci, Vector2(lx, eye_y), eye_r, ink)
+	_circle(ci, Vector2(rx, eye_y), eye_r, ink)
+	var spark: float = maxf(0.55, eye_r * 0.34)
+	_circle(ci, Vector2(lx + eye_r * 0.32, eye_y - eye_r * 0.34), spark, Color(1, 1, 1, 0.92 * alpha))
+	_circle(ci, Vector2(rx + eye_r * 0.32, eye_y - eye_r * 0.34), spark, Color(1, 1, 1, 0.92 * alpha))
+	ci.draw_arc(
+		pos + Vector2(0, r * 0.10), r * 0.22,
+		PI * 0.20, PI * 0.80, 24, ink, maxf(1.2, r * 0.045), true
+	)
+	_circle(ci, pos + Vector2(-r * 0.37, r * 0.16), r * 0.11, blush)
+	_circle(ci, pos + Vector2(r * 0.37, r * 0.16), r * 0.11, blush)
 
 
 ## Compatibility 不支持 2D MSAA，圆必须自己开抗锯齿。

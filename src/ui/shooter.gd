@@ -99,16 +99,16 @@ func _draw() -> void:
 			draw_circle(_preview_target, 3.0, Color(1, 1, 1, 0.80))
 
 	# 当前球
-	BallDraw.draw_ball(self, p, r, Ui.BALL_COLORS[game.current_color])
+	BallDraw.draw_ball(self, p, r, Ui.BALL_COLORS[game.current_color], 1.0, true)
 
 	# 飞行球
 	if not _flight.is_empty():
-		BallDraw.draw_ball(self, _flight["pos"], r, Ui.BALL_COLORS[_flight["color"]])
+		BallDraw.draw_ball(self, _flight["pos"], r, Ui.BALL_COLORS[_flight["color"]], 1.0, true)
 
 	# 下一球预告（右侧小球 + 引导环 + 标签）
 	var next_pos := p + Vector2(r * 2.9, r * 0.7)
 	draw_arc(next_pos, r * 0.73, 0, TAU, 32, Color(1, 1, 1, 0.22), 2.0, true)
-	BallDraw.draw_ball(self, next_pos, r * 0.53, Ui.BALL_COLORS[game.next_color])
+	BallDraw.draw_ball(self, next_pos, r * 0.53, Ui.BALL_COLORS[game.next_color], 1.0, true)
 	draw_string(
 		UiFont, Vector2(next_pos.x - 28.0, next_pos.y + 40.0), "下一颗",
 		HORIZONTAL_ALIGNMENT_CENTER, 56.0, 13, Ui.TEXT_DIM

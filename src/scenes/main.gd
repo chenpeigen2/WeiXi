@@ -147,6 +147,9 @@ func _process(_delta: float) -> void:
 
 ## 桌面 hover：可点元素显示手型光标，减少“这里能不能点”的猜测。
 func _update_cursor(pos: Vector2) -> void:
+	if shooter.is_flying():
+		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+		return
 	var hand := false
 	if color_popup.active:
 		hand = color_popup.hit(pos) >= 0
@@ -163,7 +166,7 @@ var _popup_cell := INVALID_CELL
 
 
 func _try_cycle_board_ball(pos: Vector2) -> void:
-	if fx_layer.is_swapping():
+	if shooter.is_flying() or fx_layer.is_swapping():
 		return
 	var c: Vector2i = game.layout.pixel_to_cell(BoardCamera.to_board(pos, 1.0, _cam_origin()))
 	if not game.board.has_ball(c):
@@ -199,6 +202,9 @@ func _on_release(pos: Vector2) -> void:
 		return
 	var p := _press
 	_press = {}
+	if color_popup.active:
+		_apply_popup_tap(pos)
+		return
 	if p["dragging"]:
 		shooter.set_aim(pos - Ui.SHOOTER_POS)
 		_update_preview()
@@ -212,13 +218,14 @@ func _on_tap(pos: Vector2) -> void:
 	if color_popup.active:
 		_apply_popup_tap(pos)
 		return
+	# 飞行/互换期间锁输入，避免“飞的是旧色、落的是新色”
+	if shooter.is_flying() or fx_layer.is_swapping():
+		return
 	# 作弊1：颜色选择条优先命中
 	var i := BallPicker.hit(pos)
 	if i >= 0:
 		game.set_current_color(i)
 		refresh()
-		return
-	if fx_layer.is_swapping():
 		return
 	var c: Vector2i = game.layout.pixel_to_cell(BoardCamera.to_board(pos, 1.0, _cam_origin()))
 	if game.board.has_ball(c):
@@ -230,7 +237,7 @@ func _on_tap(pos: Vector2) -> void:
 # ---------- 发射 ----------
 
 func _fire() -> void:
-	if shooter.is_flying():
+	if shooter.is_flying() or fx_layer.is_swapping():
 		return
 	var tr := _trace_screen()
 	if tr["cell"] == INVALID_CELL:
@@ -238,8 +245,9 @@ func _fire() -> void:
 	var cell: Vector2i = tr["cell"]
 	selected = INVALID_CELL
 	var before: Dictionary = game.board.cells.duplicate()
-	shooter.start_flight(tr["path"], game.current_color, func() -> void:
-		var res: Dictionary = game.attach_ball(cell)
+	var shot_color: int = game.current_color
+	shooter.start_flight(tr["path"], shot_color, func() -> void:
+		var res: Dictionary = game.attach_ball(cell, shot_color)
 		_spawn_effects(res, before)
 		refresh()
 	)

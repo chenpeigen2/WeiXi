@@ -62,12 +62,13 @@ func set_ball_color(cell: Vector2i, color: int) -> Dictionary:
 ## 发射：球吸附到 cell 后的完整结算。
 ## 宽限一发: 触线的球先留着；之后再发射时，逾期的最低行先掉出腾位置，
 ## 新球不陪葬，掉行后失去支撑的悬空球跟着掉。
-func attach_ball(cell: Vector2i) -> Dictionary:
+func attach_ball(cell: Vector2i, color := -1) -> Dictionary:
+	var ball_color := current_color if color < 0 else color
 	var overflow: Array[Vector2i] = []
 	if board.lowest_occupied_row() >= deadline_row:
 		overflow = board.drop_overflow(deadline_row)
 		overflow.append_array(_drop_floating())
-	board.set_ball(cell, current_color)
+	board.set_ball(cell, ball_color)
 	var res: Dictionary = board.resolve_at(cell)
 	_score_result(res)
 	_after_board_change(res, false)

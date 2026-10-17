@@ -145,3 +145,15 @@ func test_overflow_drop_takes_unsupported_balls() -> void:
 	assert_has(res["overflow"], Vector2i(0, 13), "逾期行掉落")
 	assert_has(res["overflow"], Vector2i(6, 12), "失去支撑的球跟着掉")
 	assert_true(g.board.has_ball(Vector2i(1, 12)), "新球仍在")
+
+
+func test_attach_ball_uses_explicit_color_and_rotates_queue() -> void:
+	var g := Game.new(1)
+	g.board = Board.new(10, 12)
+	g.board.set_ball(Vector2i(5, 0), 3) # 锚点，防止清空触发补球
+	var old_next: int = g.next_color
+	g.set_current_color(0)
+	var res: Dictionary = g.attach_ball(Vector2i(0, 1), 4)
+	assert_eq(g.board.get_color(Vector2i(0, 1)), 4, "使用发射时捕获的颜色")
+	assert_eq(g.current_color, old_next, "当前球轮转")
+	assert_eq(res["popped"].size(), 0, "无消除")
