@@ -2,6 +2,7 @@ extends Node2D
 ## 特效层：爆裂环 + 掉落球 + 三消互换滑动动画（含无效回弹）。
 
 const BallDraw = preload("res://src/ui/ball_draw.gd")
+const NumericFont = preload("res://fonts/Fredoka-Variable.ttf")
 
 const POP_DUR := 0.30
 const DROP_DUR := 0.50
@@ -31,9 +32,7 @@ func spawn_score_text(pos: Vector2, amount: int, color: Color = Color(1.0, 0.78,
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.size = Vector2(120, 30)
 	label.position = pos - Vector2(60, 18)
-	var value_font := ThemeDB.fallback_font
-	if value_font != null:
-		label.add_theme_font_override("font", value_font)
+	label.add_theme_font_override("font", NumericFont)
 	label.add_theme_font_size_override("font_size", 24)
 	label.add_theme_color_override("font_color", color)
 	label.add_theme_color_override("font_outline_color", Color(0.05, 0.06, 0.11, 0.9))

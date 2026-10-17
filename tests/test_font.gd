@@ -15,3 +15,11 @@ func test_kawaii_font_configured_and_supports_cjk() -> void:
 	# 游戏界面用到的汉字都必须有字形（避免豆腐块）
 	for ch in ["分", "数", "连", "击", "掉", "落", "点", "给", "这", "颗", "球", "选", "个", "颜", "色", "相", "邻", "互", "换"]:
 		assert_true(font.has_char(ch.unicode_at(0)), "有字形: %s" % ch)
+
+
+func test_numeric_font_loads_and_has_digits() -> void:
+	# HUD 数字用 Fredoka：必须能加载，且 0-9、逗号、加号都有字形。
+	var font := FontFile.new()
+	assert_eq(font.load_dynamic_font("res://fonts/Fredoka-Variable.ttf"), OK, "Fredoka 可加载")
+	for ch in "0123456789,+":
+		assert_true(font.has_char(ch.unicode_at(0)), "Fredoka 有字形: %s" % ch)

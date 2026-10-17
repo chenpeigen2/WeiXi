@@ -3,6 +3,7 @@ extends Control
 ## 连击 ×1 用中性胶囊，×2 起才变金色，避免开局最抢眼的是“没有连击”。
 
 const Ui = preload("res://src/ui/theme.gd")
+const NumericFont = preload("res://fonts/Fredoka-Variable.ttf")
 
 var text := ""
 
@@ -45,9 +46,7 @@ func _ready() -> void:
 	_value_label.name = "ScoreValue"
 	_value_label.position = Vector2(20, 20)
 	_value_label.size = Vector2(Ui.SCORE_TEXT_MAX_X - 20.0, 40)
-	var value_font := ThemeDB.fallback_font
-	if value_font != null:
-		_value_label.add_theme_font_override("font", value_font)
+	_value_label.add_theme_font_override("font", NumericFont)
 	_value_label.add_theme_font_size_override("font_size", 34)
 	_value_label.add_theme_color_override("font_color", Ui.TEXT_MAIN)
 	add_child(_value_label)
@@ -67,6 +66,12 @@ func set_score(score: int, combo: int) -> void:
 	text = "分数 %s" % value
 	if _value_label != null:
 		_value_label.text = value
+		var fs := 34
+		if value.length() > 9:
+			fs = 24
+		elif value.length() > 6:
+			fs = 28
+		_value_label.add_theme_font_size_override("font_size", fs)
 	if _combo_label != null:
 		var active := combo > 1
 		_combo_label.text = "连击 ×%d" % combo
@@ -96,14 +101,9 @@ func _pop_combo() -> void:
 	tw.tween_property(_combo_label, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
-## 分数格式化：小分数用千分位，大分数压成 1.2万 / 1.2亿，避免撑爆面板。
+## 分数格式：千分位，配合 Fredoka 圆润数字；超长时由字号收缩，不再塞“万/亿”方块。
 static func format_score(score: int) -> String:
-	var s: int = maxi(0, score)
-	if s >= 10000000:
-		return "%.1f亿" % (float(s) / 100000000.0)
-	if s >= 100000:
-		return "%.1f万" % (float(s) / 10000.0)
-	return _group(s)
+	return _group(maxi(0, score))
 
 
 static func _group(n: int) -> String:
