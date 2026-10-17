@@ -126,8 +126,15 @@ func _draw() -> void:
 	if game.star_shot:
 		_star_marker(p + Vector2(r * 0.72, -r * 0.72), 9.0, Color(1.0, 0.97, 0.94, 0.98))
 
-	# 飞行球
+	# 飞行球 + 一点点拖尾，让碰撞前的速度感更明显
 	if not _flight.is_empty():
+		for k in [1, 2, 3]:
+			var d: float = _flight["d"] - k * 13.0
+			if d > 0.0:
+				var tp := FlightPath.sample(_flight["path"], d)
+				var trail := Ui.BALL_COLORS[_flight["color"]]
+				trail.a = 0.16 / float(k)
+				draw_circle(tp, r * (0.82 - k * 0.07), trail)
 		BallDraw.draw_ball(self, _flight["pos"], r, Ui.BALL_COLORS[_flight["color"]], 1.0, true)
 
 	# 下一球预告（右侧小球 + 引导环 + 标签）

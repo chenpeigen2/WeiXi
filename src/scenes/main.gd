@@ -281,6 +281,7 @@ func _start_new_game(seed: int, is_daily: bool) -> void:
 	shooter.aim_dir = Vector2.UP
 	shooter._flight = {}
 	shooter.set_preview(PackedVector2Array(), Vector2.ZERO, game.current_color)
+	board_view.clear_landings()
 	fx_layer.clear()
 	meta_bar.set_state(daily_mode, sticker_book.count())
 	refresh()
@@ -338,6 +339,12 @@ func _fire() -> void:
 	var bounces: int = int(tr.get("bounces", 0))
 	shooter.start_flight(tr["path"], shot_color, func() -> void:
 		var res: Dictionary = game.attach_ball(cell, shot_color, bounces)
+		if game.board.has_ball(cell):
+			var impact := Vector2.UP
+			var path: PackedVector2Array = tr["path"]
+			if path.size() >= 2:
+				impact = (path[path.size() - 1] - path[path.size() - 2]).normalized()
+			board_view.play_landing(cell, impact)
 		_spawn_effects(res, before)
 		refresh()
 	)

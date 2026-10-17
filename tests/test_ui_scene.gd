@@ -126,3 +126,16 @@ func test_sticker_album_ignores_flight_and_swap() -> void:
 	assert_true(node.album.visible, "空闲时可打开")
 	node.album.close()
 	node.free()
+
+
+func test_landing_animation_queues_and_expires() -> void:
+	var node := _instantiate_main()
+	node.game.board = Board.new(10, 12)
+	node.game.board.set_ball(Vector2i(0, 0), 1)
+	node.board_view.play_landing(Vector2i(0, 0), Vector2.UP)
+	assert_eq(node.board_view._landings.size(), 1, "落球动画入队")
+	node.board_view._process(0.15)
+	assert_eq(node.board_view._landings.size(), 1, "未到时长仍保留")
+	node.board_view._process(0.5)
+	assert_eq(node.board_view._landings.size(), 0, "结束后清理")
+	node.free()

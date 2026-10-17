@@ -11,6 +11,7 @@ const INVALID_CELL := Vector2i(-999, -999)
 var game: RefCounted
 var selected := INVALID_CELL
 var hidden_cells := {} # 互换动画期间被覆盖层接管、暂停绘制的格子
+var _landings: Array[Dictionary] = []
 
 var _panel: StyleBoxFlat
 
@@ -77,12 +78,15 @@ func _draw() -> void:
 	# 球（滑出顶部的行隐藏不画）
 	var r: float = layout.radius
 	for cell in game.board.cells:
-		if hidden_cells.has(cell):
+		if hidden_cells.has(cell) or _is_landing(cell):
 			continue
 		var pos: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(cell), 1.0, origin)
 		if pos.y < Ui.BOARD_TOP - r:
 			continue
 		BallDraw.draw_ball(self, pos, r * 0.95, Ui.BALL_COLORS[game.board.get_color(cell)])
+
+	for landing in _landings:
+		_draw_landing(landing)
 
 	# 三消选中环：外层柔光 + 内层实线
 	if selected != INVALID_CELL and game.board.has_ball(selected):
@@ -91,6 +95,85 @@ func _draw() -> void:
 		glow.a = 0.18
 		draw_arc(pos, r * 1.16, 0, TAU, 40, glow, 7.0, true)
 		draw_arc(pos, r * 1.05, 0, TAU, 40, Ui.SELECTION, 3.5, true)
+
+
+func clear_landings() -> void:
+	_landings.clear()
+	queue_redraw()
+
+
+func play_landing(cell: Vector2i, impact_dir: Vector2) -> void:
+	if game == null or not game.board.has_ball(cell):
+		return
+	_landings.append({
+		"cell": cell,
+		"dir": impact_dir.normalized() if impact_dir != Vector2.ZERO else Vector2.UP,
+		"t": 0.0,
+		"color": game.board.get_color(cell),
+	})
+	queue_redraw()
+
+
+func _process(delta: float) -> void:
+	if _landings.is_empty():
+		return
+	var keep: Array[Dictionary] = []
+	for l in _landings:
+		l["t"] += delta / 0.38
+		var cell: Vector2i = l["cell"]
+		if l["t"] >= 1.0:
+			continue
+		if game == null or not game.board.has_ball(cell) or game.board.get_color(cell) != int(l["color"]):
+			continue
+		keep.append(l)
+	_landings = keep
+	queue_redraw()
+
+
+func _is_landing(cell: Vector2i) -> bool:
+	for l in _landings:
+		if l["cell"] == cell:
+			return true
+	return false
+
+
+## 落球：沿撞击方向挤压回弹 + 接触涟漪 + 奶油尘 + 小爱心。
+func _draw_landing(l: Dictionary) -> void:
+	var t: float = l["t"]
+	var cell: Vector2i = l["cell"]
+	var pos: Vector2 = BoardCamera.to_screen(game.layout.cell_to_pixel(cell), 1.0, cam_origin())
+	var r: float = game.layout.radius
+	var dir: Vector2 = l["dir"]
+	var color: Color = Ui.BALL_COLORS[int(l["color"])]
+	var w: float = exp(-8.0 * t) * cos(14.0 * t)
+	var sx: float = 1.0 + 0.20 * w * absf(dir.y) - 0.12 * w * absf(dir.x)
+	var sy: float = 1.0 - 0.24 * w * absf(dir.y) + 0.12 * w * absf(dir.x)
+	var lift: float = -3.0 * sin(PI * t) * (1.0 - t)
+	var fade: float = 1.0 - t
+
+	# 接触涟漪
+	var ring := Ui.ROSE
+	ring.a = 0.42 * fade
+	draw_arc(pos + Vector2(0, r * 0.82), r * (0.45 + 0.6 * t), 0, TAU, 40, ring, 3.0, true)
+	# 奶油尘
+	for i in range(7):
+		var ang: float = PI * 0.12 + PI * 0.76 * float(i) / 6.0
+		var dp := pos + Vector2(cos(ang), sin(ang)) * r * (0.88 + 0.55 * t)
+		var dust := Color(1.0, 0.93, 0.88, 0.38 * fade)
+		draw_circle(dp, 3.2 * fade, dust)
+
+	# 球体挤压回弹
+	draw_set_transform(pos + Vector2(0, lift), 0.0, Vector2(maxf(0.72, sx), maxf(0.72, sy)))
+	BallDraw.draw_ball(self, Vector2.ZERO, r * 0.95, color, 1.0, false)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	# 两颗小爱心从接触点冒出来
+	for i in range(2):
+		var side := -1.0 if i == 0 else 1.0
+		_heart(
+			pos + Vector2(side * r * 0.45, r * 0.62 - 24.0 * t),
+			4.0, Ui.ROSE, 0.65 * fade
+		)
 
 
 ## 小爱心：棋盘边角的糖霜装饰。
