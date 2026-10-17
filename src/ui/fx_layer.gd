@@ -21,6 +21,32 @@ func spawn_drop(pos: Vector2, r: float, color: Color) -> void:
 	queue_redraw()
 
 
+## 消除后的 +分浮字：上浮淡出，给玩家“这一发有回报”的即时反馈。
+func spawn_score_text(pos: Vector2, amount: int, color: Color = Color(1.0, 0.78, 0.30)) -> void:
+	if amount <= 0:
+		return
+	var label := Label.new()
+	label.text = "+%d" % amount
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.size = Vector2(120, 30)
+	label.position = pos - Vector2(60, 18)
+	var value_font := ThemeDB.fallback_font
+	if value_font != null:
+		label.add_theme_font_override("font", value_font)
+	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_outline_color", Color(0.05, 0.06, 0.11, 0.9))
+	label.add_theme_constant_override("outline_size", 4)
+	add_child(label)
+
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(label, "position:y", label.position.y - 44.0, 0.65).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(label, "modulate:a", 0.0, 0.65).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(label.queue_free)
+
+
 func effect_count() -> int:
 	return _effects.size()
 
@@ -88,5 +114,4 @@ func _draw() -> void:
 			c.a = 0.45 * (1.0 - k)
 			draw_circle(e["pos"], e["r"] * (1.0 - k) * 0.9, c)
 		else:
-			c.a = 1.0 - k * k
-			draw_circle(e["pos"], e["r"] * 0.95, c)
+			BallDraw.draw_ball(self, e["pos"], e["r"] * 0.95, e["color"], 1.0 - k * k)

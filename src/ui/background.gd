@@ -1,14 +1,47 @@
 extends Node2D
-## 背景：纵向渐变 + 缓缓上浮的氛围气泡 + 四角压暗 + 顶部微光。
+## 背景：静态 shader 渐变 + 平滑暗角 + 缓缓上浮的氛围气泡。
+## 渐变/暗角只画一次，气泡每帧只重绘本层；不再用四角大圆与 32 条色带。
 
 const Ui = preload("res://src/ui/theme.gd")
 
-const BANDS := 32
+const SHADER_CODE := """
+shader_type canvas_item;
+
+uniform vec4 top_color : source_color;
+uniform vec4 bottom_color : source_color;
+uniform vec4 glow_color : source_color;
+
+float hash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+void fragment() {
+	vec2 uv = UV;
+	vec3 col = mix(top_color.rgb, bottom_color.rgb, smoothstep(0.0, 1.0, uv.y));
+
+	// 径向暗角：smoothstep 代替四个硬边圆，避免花瓣状接缝。
+	float d = distance(uv, vec2(0.5, 0.44));
+	float vig = smoothstep(0.28, 0.90, d);
+	col = mix(col, vec3(0.025, 0.030, 0.060), vig * 0.62);
+
+	// 顶部微光：柔和椭圆，不是 390px 的圆。
+	float glow = 1.0 - smoothstep(0.0, 0.62, distance(uv, vec2(0.5, -0.06)));
+	col += glow_color.rgb * glow * 0.09;
+
+	// 1LSB 抖动打散 8bit 渐变色带。
+	float n = hash(uv * vec2(750.0, 1275.0)) - 0.5;
+	col += n / 255.0;
+
+	COLOR = vec4(col, 1.0);
+}
+"""
 
 var _bubbles: Array[Dictionary] = []
 
 
 func _ready() -> void:
+	_build_static_layer()
+
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7 # 固定种子，布局稳定
 	for i in range(14):
@@ -21,6 +54,29 @@ func _ready() -> void:
 		})
 
 
+## 静态渐变层：一个带 shader 的 ColorRect，只创建一次，不参与每帧重绘。
+func _build_static_layer() -> void:
+	var shader := Shader.new()
+	shader.code = SHADER_CODE
+
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	mat.set_shader_parameter("top_color", Ui.BG_TOP)
+	mat.set_shader_parameter("bottom_color", Ui.BG_BOTTOM)
+	mat.set_shader_parameter("glow_color", Ui.ACCENT)
+
+	var rect := ColorRect.new()
+	rect.name = "Gradient"
+	rect.position = Vector2.ZERO
+	rect.size = Vector2(Ui.SCREEN_W, Ui.SCREEN_H)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.color = Ui.BG_BOTTOM # shader 编译失败时的兜底底色，避免白屏
+	rect.material = mat
+	rect.z_index = -1
+	rect.show_behind_parent = true
+	add_child(rect)
+
+
 func _process(delta: float) -> void:
 	for b in _bubbles:
 		b["y"] -= b["speed"] * delta
@@ -30,19 +86,5 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	# 渐变
-	for i in range(BANDS):
-		var t := float(i) / BANDS
-		var col := Ui.BG_TOP.lerp(Ui.BG_BOTTOM, t)
-		draw_rect(Rect2(0, t * Ui.SCREEN_H, Ui.SCREEN_W, Ui.SCREEN_H / BANDS + 1), col)
-	# 氛围气泡
 	for b in _bubbles:
 		draw_circle(Vector2(b["x"], b["y"]), b["r"], Color(1, 1, 1, b["a"]))
-	# 四角压暗
-	var vignette := Color(0, 0, 0, 0.16)
-	for corner in [Vector2.ZERO, Vector2(Ui.SCREEN_W, 0), Vector2(0, Ui.SCREEN_H), Vector2(Ui.SCREEN_W, Ui.SCREEN_H)]:
-		draw_circle(corner, 300, vignette)
-	# 顶部微光
-	var glow := Ui.ACCENT
-	glow.a = 0.035
-	draw_circle(Vector2(Ui.SCREEN_W * 0.5, -105), 390, glow)

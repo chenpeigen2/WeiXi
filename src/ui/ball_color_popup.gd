@@ -1,18 +1,23 @@
 extends Node2D
-## 双击棋盘球弹出的调色板：6 色横排 + 指向球的小三角，点选即换，点外取消。
+## 双击棋盘球弹出的调色板：6 色横排 + 指向目标球的三角，点选即换，点外取消。
 
 const Ui = preload("res://src/ui/theme.gd")
 const BallDraw = preload("res://src/ui/ball_draw.gd")
 
-const SWATCH_R := 18.0
-const DX := 46.0
-const HIT_R := 24.0
-const PANEL_W := 290.0
-const PANEL_H := 64.0
+const SWATCH_R := 22.0
+const DX := 52.0
+const HIT_R := 26.0
+const PANEL_W := 340.0
+const PANEL_H := 76.0
 const GAP_Y := 34.0 # 面板底与目标球的距离
+const ARROW := 10.0
 
 var active := false
+var current_color := -1 # 目标球当前颜色，用于在调色板里标一下
 var _center := Vector2.ZERO # 面板中心
+var _above := true
+var _hover := -1
+var _anchor_x := 0.0
 
 var _panel: StyleBoxFlat
 
@@ -28,11 +33,11 @@ static func hit_at(center: Vector2, pos: Vector2) -> int:
 	return -1
 
 
-## 面板中心夹取到屏幕内（含面板半宽145与球间距）
+## 面板中心夹取到屏幕内（含面板半宽 170 与面板半高 38）
 static func clamp_center(pos: Vector2) -> Vector2:
 	return Vector2(
-		clamp(pos.x, 150.0, 600.0),
-		clamp(pos.y, 60.0, 1215.0)
+		clampf(pos.x, PANEL_W * 0.5 + 5.0, Ui.SCREEN_W - PANEL_W * 0.5 - 5.0),
+		clampf(pos.y, 60.0, Ui.SCREEN_H - 60.0)
 	)
 
 
@@ -42,15 +47,27 @@ func _ready() -> void:
 	_panel.bg_color = Color(0.10, 0.11, 0.17, 0.96)
 	_panel.border_color = Ui.PANEL_STROKE
 	_panel.set_border_width_all(1)
-	_panel.set_corner_radius_all(32)
+	_panel.set_corner_radius_all(int(Ui.PANEL_RADIUS_LARGE))
+	_panel.shadow_color = Color(0, 0, 0, 0.35)
+	_panel.shadow_size = 12
+	_panel.shadow_offset = Vector2(0, 6)
 
 
 func open_at(screen_pos: Vector2) -> void:
 	# 面板出现在球的上方，太靠顶则放到下方
 	var c := Vector2(screen_pos.x, screen_pos.y - GAP_Y - PANEL_H / 2.0)
+	_above = true
 	if c.y - PANEL_H / 2.0 < 60.0:
 		c.y = screen_pos.y + GAP_Y + PANEL_H / 2.0
+		_above = false
 	_center = clamp_center(c)
+	# 三角尽量对齐目标球，但不允许跑出面板边缘。
+	_anchor_x = clampf(
+		screen_pos.x,
+		_center.x - PANEL_W / 2.0 + 24.0,
+		_center.x + PANEL_W / 2.0 - 24.0
+	)
+	_hover = -1
 	active = true
 	visible = true
 	queue_redraw()
@@ -58,6 +75,7 @@ func open_at(screen_pos: Vector2) -> void:
 
 func close() -> void:
 	active = false
+	_hover = -1
 	visible = false
 	queue_redraw()
 
@@ -68,9 +86,43 @@ func hit(pos: Vector2) -> int:
 	return hit_at(_center, pos)
 
 
+func set_hover(pos: Vector2) -> void:
+	if not active:
+		return
+	var i := hit_at(_center, pos)
+	if i != _hover:
+		_hover = i
+		queue_redraw()
+
+
 func _draw() -> void:
 	if not active:
 		return
-	draw_style_box(_panel, Rect2(_center - Vector2(PANEL_W, PANEL_H) / 2.0, Vector2(PANEL_W, PANEL_H)))
+
+	var rect := Rect2(_center - Vector2(PANEL_W, PANEL_H) / 2.0, Vector2(PANEL_W, PANEL_H))
+	draw_style_box(_panel, rect)
+
+	# 指向目标球的三角：上方弹出时朝下，下方弹出时朝上。
+	var half_h := PANEL_H / 2.0
+	var base_y := _center.y + half_h
+	var tip_y := base_y + ARROW
+	if not _above:
+		base_y = _center.y - half_h
+		tip_y = base_y - ARROW
+	var tri := PackedVector2Array([
+		Vector2(_anchor_x, tip_y),
+		Vector2(_anchor_x - 11.0, base_y),
+		Vector2(_anchor_x + 11.0, base_y),
+	])
+	draw_colored_polygon(tri, _panel.bg_color)
+	draw_line(Vector2(_anchor_x - 11.0, base_y), Vector2(_anchor_x, tip_y), Ui.PANEL_STROKE, 1.0, true)
+	draw_line(Vector2(_anchor_x + 11.0, base_y), Vector2(_anchor_x, tip_y), Ui.PANEL_STROKE, 1.0, true)
+
 	for i in range(6):
-		BallDraw.draw_ball(self, swatch_pos(_center, i), SWATCH_R, Ui.BALL_COLORS[i])
+		var p := swatch_pos(_center, i)
+		var r := SWATCH_R * (1.12 if i == current_color else 1.0)
+		BallDraw.draw_ball(self, p, r, Ui.BALL_COLORS[i])
+		if i == _hover:
+			draw_arc(p, r + 3.0, 0, TAU, 36, Color(1, 1, 1, 0.85), 2.0, true)
+		if i == current_color:
+			draw_arc(p, r + 6.0, 0, TAU, 36, Ui.ACCENT, 2.0, true)

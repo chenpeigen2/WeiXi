@@ -1,16 +1,16 @@
 <style>
-  /* 画布居中 + 等比适配窗口（不裁切、不顶角） */
+  /* weixi-shell: 画布居中 + 等比适配 + 桌面端圆角画框 */
   html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    background: #0f1020;
   }
   body {
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    background: radial-gradient(circle at 50% 18%, #1b1c36 0%, #0e0f1f 52%, #070811 100%);
   }
   canvas {
     display: block;
@@ -18,5 +18,9 @@
     max-height: 100vh;
     width: auto;
     height: auto;
+    border-radius: 24px;
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(255, 255, 255, 0.06);
   }
 </style>

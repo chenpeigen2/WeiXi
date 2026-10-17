@@ -14,6 +14,7 @@ const ScorePanel = preload("res://src/ui/score_panel.gd")
 const Background = preload("res://src/ui/background.gd")
 const FxLayer = preload("res://src/ui/fx_layer.gd")
 const BallColorPopup = preload("res://src/ui/ball_color_popup.gd")
+const DeadlineView = preload("res://src/ui/deadline_view.gd")
 
 const INVALID_CELL := Vector2i(-999, -999)
 const DRAG_THRESHOLD := 8.0
@@ -22,6 +23,7 @@ var game: RefCounted
 var selected := INVALID_CELL
 
 var board_view: Node2D
+var deadline_view: Node2D
 var shooter: Node2D
 var picker: Node2D
 var fx_layer: Node2D
@@ -30,6 +32,7 @@ var score_panel: Control
 var hint_label: Label
 
 var _press := {} # {pos,dragging}
+var _coach_step := 0
 
 
 func _ready() -> void:
@@ -39,6 +42,9 @@ func _ready() -> void:
 	board_view = _make(BoardView, "BoardView")
 	board_view.game = game
 	add_child(board_view)
+	deadline_view = _make(DeadlineView, "DeadlineView")
+	deadline_view.game = game
+	add_child(deadline_view)
 	shooter = _make(Shooter, "Shooter")
 	shooter.game = game
 	add_child(shooter)
@@ -56,8 +62,11 @@ func _ready() -> void:
 	hud.add_child(score_panel)
 	hint_label = Label.new()
 	hint_label.name = "HintLabel"
-	hint_label.text = "点两个相邻球互换!"
-	hint_label.position = Vector2(505, 30)
+	hint_label.text = "拖动瞄准 · 松手发射"
+	hint_label.position = Vector2(480, 30)
+	hint_label.size = Vector2(246, 34)
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hint_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hint_label.add_theme_font_size_override("font_size", 24)
 	hint_label.add_theme_color_override("font_color", Ui.ACCENT)
 	hud.add_child(hint_label)
@@ -75,22 +84,47 @@ func _make(script: GDScript, node_name: String) -> Node:
 func refresh() -> void:
 	board_view.selected = selected
 	board_view.queue_redraw()
+	deadline_view.origin = board_view.cam_origin()
+	deadline_view.queue_redraw()
 	shooter.queue_redraw()
 	picker.set_current(game.current_color)
 	score_panel.set_score(game.scorer.score, game.scorer.combo)
+
 	if color_popup.active:
 		hint_label.text = "给这颗球选个颜色"
+		hint_label.visible = true
+	elif _coach_step < 3:
+		hint_label.text = _coach_text()
 		hint_label.visible = true
 	else:
 		hint_label.text = "点两个相邻球互换!"
 		hint_label.visible = game.should_hint_match3()
+
 	_update_preview()
+
+
+## 首轮三步提示：发射 → 互换 → 双击换色。玩家做过就进入下一步。
+func _coach_text() -> String:
+	match _coach_step:
+		0:
+			return "拖动瞄准 · 松手发射"
+		1:
+			return "点两个相邻球可以互换"
+		2:
+			return "双击任意球可以换色"
+		_:
+			return ""
 
 
 # ---------- 输入路由（点按/拖拽/长按） ----------
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
+		_update_cursor(event.position)
+		if color_popup.active:
+			color_popup.set_hover(event.position)
+		else:
+			picker.set_hover(event.position)
 		shooter.set_aim(event.position - Ui.SHOOTER_POS)
 		_update_preview()
 		if not _press.is_empty() and event.position.distance_to(_press["pos"]) > DRAG_THRESHOLD:
@@ -111,6 +145,19 @@ func _process(_delta: float) -> void:
 		hint_label.modulate = Color.WHITE.lerp(Color(1, 0.6, 0.4), 0.5 + 0.5 * sin(Time.get_ticks_msec() / 200.0))
 
 
+## 桌面 hover：可点元素显示手型光标，减少“这里能不能点”的猜测。
+func _update_cursor(pos: Vector2) -> void:
+	var hand := false
+	if color_popup.active:
+		hand = color_popup.hit(pos) >= 0
+	elif BallPicker.hit(pos) >= 0:
+		hand = true
+	else:
+		var c: Vector2i = game.layout.pixel_to_cell(BoardCamera.to_board(pos, 1.0, _cam_origin()))
+		hand = game.board.has_ball(c)
+	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if hand else Input.CURSOR_ARROW)
+
+
 ## 作弊1：双击棋盘上已射出的球 → 弹出调色板选任意颜色
 var _popup_cell := INVALID_CELL
 
@@ -123,6 +170,7 @@ func _try_cycle_board_ball(pos: Vector2) -> void:
 		return
 	selected = c # 框选目标球，明确正在改哪颗
 	_popup_cell = c
+	color_popup.current_color = game.board.get_color(c)
 	color_popup.open_at(pos)
 	refresh()
 
@@ -139,6 +187,8 @@ func _apply_popup_tap(pos: Vector2) -> void:
 	var res: Dictionary = game.set_ball_color(_popup_cell, i)
 	selected = INVALID_CELL
 	_popup_cell = INVALID_CELL
+	if _coach_step < 3:
+		_coach_step = 3
 	if not res["popped"].is_empty():
 		_spawn_effects(res, before)
 	refresh()
@@ -193,6 +243,9 @@ func _fire() -> void:
 		_spawn_effects(res, before)
 		refresh()
 	)
+	if _coach_step == 0:
+		_coach_step = 1
+		refresh()
 
 
 # ---------- 三消互换 ----------
@@ -218,6 +271,8 @@ func _animated_swap(a: Vector2i, c: Vector2i) -> void:
 	var o := _cam_origin()
 	var before: Dictionary = game.board.cells.duplicate()
 	var res: Dictionary = game.try_swap(a, c)
+	if _coach_step < 2:
+		_coach_step = 2
 	var pos_a := BoardCamera.to_screen(game.layout.cell_to_pixel(a), 1.0, o)
 	var pos_b := BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
 	var color_a: Color = Ui.BALL_COLORS[before[a]]
@@ -246,6 +301,15 @@ func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 		fx_layer.spawn_pop(pos, game.layout.radius, Ui.BALL_COLORS[before.get(c, 0)])
 	_spawn_drop_effects(res["dropped"], before)
 	_spawn_drop_effects(res.get("overflow", []), before)
+
+	# +分浮字：本发有消除才出现。
+	var gain: int = int(res.get("gain", 0))
+	if gain > 0 and not res["popped"].is_empty():
+		var center := Vector2.ZERO
+		for c in res["popped"]:
+			center += BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
+		center /= float(res["popped"].size())
+		fx_layer.spawn_score_text(center, gain)
 
 
 func _spawn_drop_effects(cells: Array, before: Dictionary) -> void:

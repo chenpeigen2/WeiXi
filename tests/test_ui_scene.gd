@@ -13,7 +13,7 @@ func _instantiate_main() -> Node:
 
 func test_main_scene_components_exist() -> void:
 	var node := _instantiate_main()
-	for p in ["Background", "BoardView", "Shooter", "ColorPicker", "FxLayer", "ColorPopup", "HUD/ScorePanel", "HUD/HintLabel"]:
+	for p in ["Background", "BoardView", "DeadlineView", "Shooter", "ColorPicker", "FxLayer", "ColorPopup", "HUD/ScorePanel", "HUD/HintLabel"]:
 		assert_true(node.get_node_or_null(p) != null, "存在组件 %s" % p)
 	assert_true(node.get_node_or_null("HUD/RowSlider") == null, "不再有主动掉落滑杆")
 	node.free()
@@ -61,4 +61,19 @@ func test_score_panel_updates_after_scoring() -> void:
 	node.refresh()
 	var panel = node.get_node("HUD/ScorePanel")
 	assert_true("30" in panel.text, "分数面板显示30, 实际: %s" % panel.text)
+	node.free()
+
+
+func test_first_run_coach_starts_with_fire_hint() -> void:
+	var node := _instantiate_main()
+	assert_true(node.hint_label.visible, "首次进入显示操作提示")
+	assert_true("发射" in node.hint_label.text, "第一条提示教发射, 实际: %s" % node.hint_label.text)
+	node.free()
+
+
+func test_deadline_warning_arms_when_lowest_row_reaches_line() -> void:
+	var node := _instantiate_main()
+	assert_false(node.deadline_view.armed(), "开局未触线")
+	node.game.board.set_ball(Vector2i(0, node.game.deadline_row), 1)
+	assert_true(node.deadline_view.armed(), "最低行触线后进入宽限期警示")
 	node.free()

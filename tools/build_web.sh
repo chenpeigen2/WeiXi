@@ -12,7 +12,7 @@ python3 - <<'EOF'
 html_path = "export/web/index.html"
 style = open("tools/web_head.html").read()
 s = open(html_path).read()
-if "0f1020" not in s:  # 幂等: 已注入则跳过
+if "weixi-shell" not in s:  # 幂等: 已注入则跳过
     s = s.replace("</head>", style + "\n</head>", 1)
     open(html_path, "w").write(s)
 print("居中样式已注入")

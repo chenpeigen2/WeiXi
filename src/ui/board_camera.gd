@@ -9,11 +9,14 @@ static func scale_for(_rows: int, _row_height: float, _diameter: float) -> float
 	return 1.0 # 不缩放，超高改上滑
 
 
-## 盘面像素坐标原点的屏幕位置：装得下则顶对齐，装不下则上滑超出部分
+## 盘面像素坐标原点的屏幕位置：装得下则顶对齐，装不下则上滑超出部分。
+## 奇数行缩进半格，偶数行左沿到奇数行右沿是 [-R, W*D]，宽 W*D+R；
+## 所以球区中心比 board_px_w 的中心右移 D/4，必须补上这半个球。
 static func origin_for(rows: int, row_height: float, diameter: float, board_px_w: float) -> Vector2:
 	var total_h: float = rows * row_height + diameter
 	var y: float = Ui.BOARD_TOP - max(0.0, total_h - Ui.BOARD_AREA_H)
-	return Vector2((Ui.SCREEN_W - board_px_w) * 0.5, y)
+	var x: float = (Ui.SCREEN_W - board_px_w) * 0.5 + diameter * 0.25
+	return Vector2(x, y)
 
 
 static func to_screen(board_pos: Vector2, scale: float, origin: Vector2) -> Vector2:

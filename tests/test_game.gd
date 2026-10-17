@@ -25,6 +25,7 @@ func test_cheat_set_color_and_attach_pop_scores() -> void:
 	var res: Dictionary = g.attach_ball(Vector2i(0, 1))
 	assert_eq(res["popped"].size(), 3, "三消")
 	assert_eq(g.scorer.score, 30, "(3*10+0)*1")
+	assert_eq(res["gain"], 30, "本次得分随结果返回，供 +分浮字使用")
 	assert_eq(g.current_color, old_next, "当前球轮转")
 
 
@@ -113,6 +114,7 @@ func test_set_board_ball_color_triggers_match_and_scores() -> void:
 	var res: Dictionary = g.set_ball_color(Vector2i(0, 1), 1)
 	assert_eq(res["popped"].size(), 3, "换色形成三连即消")
 	assert_eq(g.scorer.score, 30, "计分")
+	assert_eq(res["gain"], 30, "换色消除也返回本次得分")
 
 
 func test_trigger_shot_survives_while_overdue_row_drops() -> void:

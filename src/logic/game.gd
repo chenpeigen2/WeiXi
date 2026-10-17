@@ -45,13 +45,15 @@ func set_current_color(c: int) -> void:
 ## 作弊1快捷手势：双击棋盘上已射出的球，弹出调色板换成任意颜色，
 ## 若形成 >=3 相连同色立即消除计分
 func set_ball_color(cell: Vector2i, color: int) -> Dictionary:
-	var res: Dictionary = {"popped": [], "dropped": [], "overflow": []}
+	var res: Dictionary = {"popped": [], "dropped": [], "overflow": [], "gain": 0}
 	if not board.has_ball(cell):
 		return res
 	board.cells[cell] = color
 	res = board.resolve_at(cell)
 	if not res["popped"].is_empty():
-		scorer.register_clear(res["popped"].size(), res["dropped"].size())
+		res["gain"] = scorer.register_clear(res["popped"].size(), res["dropped"].size())
+	else:
+		res["gain"] = 0
 	_after_board_change(res, false)
 	return res
 
@@ -97,8 +99,9 @@ func aim_attach(from: Vector2, dir: Vector2) -> Vector2i:
 func _score_result(res: Dictionary) -> void:
 	if res["popped"].is_empty():
 		scorer.register_miss()
+		res["gain"] = 0
 	else:
-		scorer.register_clear(res["popped"].size(), res["dropped"].size())
+		res["gain"] = scorer.register_clear(res["popped"].size(), res["dropped"].size())
 
 
 ## 掉行后失去与顶行连接的球（物理一致性）

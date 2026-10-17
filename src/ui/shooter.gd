@@ -4,6 +4,7 @@ extends Node2D
 const Ui = preload("res://src/ui/theme.gd")
 const BallDraw = preload("res://src/ui/ball_draw.gd")
 const FlightPath = preload("res://src/ui/flight_path.gd")
+const UiFont = preload("res://fonts/ZCOOLKuaiLe-Regular.ttf")
 
 const FLY_SPEED := 2700.0 # 像素/秒
 const FLY_MIN := 0.08
@@ -76,15 +77,26 @@ func _draw() -> void:
 	draw_arc(p, r * 1.5, 0, TAU, 48, Color(1, 1, 1, 0.12), 4.0, true)
 	draw_arc(p, r * 1.5, PI, TAU, 24, Ui.ACCENT.darkened(0.15), 4.0, true)
 
-	# 弹道预测：点流 + 落点幽灵球
+	# 弹道预测：带颜色光晕的点流 + 高可读的落点幽灵球
 	if _flight.is_empty():
-		for pt in _preview_points:
-			draw_circle(pt, 5.0, Color(1, 1, 1, 0.35))
+		var n: int = _preview_points.size()
+		for i in range(n):
+			var pt: Vector2 = _preview_points[i]
+			var t: float = float(i) / maxf(1.0, float(n - 1))
+			var halo := Ui.BALL_COLORS[_preview_color]
+			halo.a = 0.20 * (1.0 - t)
+			draw_circle(pt, 7.0, halo)
+			draw_circle(pt, 4.0, Color(1, 1, 1, lerpf(0.55, 0.16, t)))
 		if not _preview_points.is_empty():
+			# alpha 0.30 的橙球叠在深蓝上会发褐；提高填充并加同色描边。
 			var ghost := Ui.BALL_COLORS[_preview_color]
-			ghost.a = 0.30
+			ghost.a = 0.55
 			draw_circle(_preview_target, r * 0.95, ghost)
-			draw_arc(_preview_target, r, 0, TAU, 40, Color(1, 1, 1, 0.55), 2.5, true)
+			var ring := Ui.BALL_COLORS[_preview_color]
+			ring.a = 0.95
+			draw_arc(_preview_target, r, 0, TAU, 40, ring, 2.5, true)
+			draw_arc(_preview_target, r * 0.52, 0, TAU, 32, Color(1, 1, 1, 0.55), 1.5, true)
+			draw_circle(_preview_target, 3.0, Color(1, 1, 1, 0.80))
 
 	# 当前球
 	BallDraw.draw_ball(self, p, r, Ui.BALL_COLORS[game.current_color])
@@ -93,7 +105,11 @@ func _draw() -> void:
 	if not _flight.is_empty():
 		BallDraw.draw_ball(self, _flight["pos"], r, Ui.BALL_COLORS[_flight["color"]])
 
-	# 下一球预告（右侧小球 + 引导环）
+	# 下一球预告（右侧小球 + 引导环 + 标签）
 	var next_pos := p + Vector2(r * 2.9, r * 0.7)
-	draw_arc(next_pos, r * 0.73, 0, TAU, 32, Color(1, 1, 1, 0.15), 2.0, true)
+	draw_arc(next_pos, r * 0.73, 0, TAU, 32, Color(1, 1, 1, 0.22), 2.0, true)
 	BallDraw.draw_ball(self, next_pos, r * 0.53, Ui.BALL_COLORS[game.next_color])
+	draw_string(
+		UiFont, Vector2(next_pos.x - 28.0, next_pos.y + 40.0), "下一颗",
+		HORIZONTAL_ALIGNMENT_CENTER, 56.0, 13, Ui.TEXT_DIM
+	)
