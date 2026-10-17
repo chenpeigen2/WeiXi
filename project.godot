@@ -12,6 +12,8 @@ config_version=5
 
 config/name="WeiXi"
 config/description="玩不死的泡泡龙：泡泡龙射击消除 + 经典三消融合"
+config/copyright="Copyright (C) 2026 chenpeigen"
+config/license="GPL-3.0-or-later"
 run/main_scene="res://src/scenes/main.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.png"
