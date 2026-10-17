@@ -24,7 +24,7 @@ func _ready() -> void:
 
 	_panel = StyleBoxFlat.new()
 	_panel.bg_color = Ui.PANEL
-	_panel.border_color = Ui.PANEL_STROKE
+	_panel.border_color = Ui.MINT
 	_panel.set_border_width_all(1)
 	_panel.set_corner_radius_all(int(Ui.PANEL_RADIUS))
 	_panel.shadow_color = Color(0, 0, 0, 0.22)
@@ -38,15 +38,15 @@ func _ready() -> void:
 	_label_label = Label.new()
 	_label_label.name = "ScoreLabel"
 	_label_label.text = "分数"
-	_label_label.position = Vector2(20, 4)
+	_label_label.position = Vector2(64, 4)
 	_label_label.add_theme_font_size_override("font_size", 14)
 	_label_label.add_theme_color_override("font_color", Ui.TEXT_DIM)
 	add_child(_label_label)
 
 	_value_label = Label.new()
 	_value_label.name = "ScoreValue"
-	_value_label.position = Vector2(20, 20)
-	_value_label.size = Vector2(Ui.SCORE_TEXT_MAX_X - 20.0, 40)
+	_value_label.position = Vector2(64, 20)
+	_value_label.size = Vector2(Ui.SCORE_TEXT_MAX_X - 64.0, 40)
 	_value_label.add_theme_font_override("font", NumericFont)
 	_value_label.add_theme_font_size_override("font_size", 34)
 	_value_label.add_theme_color_override("font_color", Ui.TEXT_MAIN)
@@ -123,5 +123,39 @@ static func _group(n: int) -> String:
 
 func _draw() -> void:
 	draw_style_box(_panel, Rect2(Vector2.ZERO, size))
-	draw_line(Vector2(20.0, 0.5), Vector2(size.x - 20.0, 0.5), Color(1, 1, 1, 0.10), 1.0)
+	draw_line(Vector2(20.0, 0.5), Vector2(size.x - 20.0, 0.5), Color(0.62, 0.88, 0.74, 0.65), 1.0)
 	draw_style_box(_pill, _pill_rect)
+	_draw_bunny()
+
+
+## HUD 左侧的小兔兔：计分伙伴，同时也是“这是分数区”的可爱标记。
+func _draw_bunny() -> void:
+	var c := Vector2(42.0, 39.0)
+	# 长耳朵
+	for sx in [-1.0, 1.0]:
+		var ear_x: float = c.x + sx * 8.0
+		var tip := Vector2(ear_x - sx * 2.0, 10.0)
+		draw_line(Vector2(ear_x, 28.0), tip, Ui.BUNNY, 8.0)
+		draw_circle(Vector2(ear_x, 28.0), 4.0, Ui.BUNNY)
+		draw_circle(tip, 4.0, Ui.BUNNY)
+		draw_line(Vector2(ear_x, 27.0), tip + Vector2(0, 1.0), Ui.BUNNY_EAR, 3.2)
+		draw_circle(tip + Vector2(0, 1.0), 1.6, Ui.BUNNY_EAR)
+	# 头
+	draw_circle(c, 15.0, Ui.BUNNY)
+	draw_arc(c, 15.0, 0, TAU, 36, Ui.HEART, 1.4, true)
+	# 眼睛/腮红/嘴
+	var ink := Ui.FACE_INK
+	draw_circle(c + Vector2(-5.0, 1.5), 1.6, ink)
+	draw_circle(c + Vector2(5.0, 1.5), 1.6, ink)
+	draw_circle(c + Vector2(-9.0, 6.0), 2.4, Ui.BLUSH)
+	draw_circle(c + Vector2(9.0, 6.0), 2.4, Ui.BLUSH)
+	draw_arc(c + Vector2(0, 4.0), 4.2, PI * 0.2, PI * 0.8, 16, ink, 1.2, true)
+	# 薄荷蝴蝶结
+	var bow := c + Vector2(12.0, -10.0)
+	draw_colored_polygon(PackedVector2Array([
+		bow, bow + Vector2(-8, -4), bow + Vector2(-8, 5),
+	]), Ui.MINT)
+	draw_colored_polygon(PackedVector2Array([
+		bow, bow + Vector2(8, -4), bow + Vector2(8, 5),
+	]), Ui.MINT)
+	draw_circle(bow, 2.1, Ui.PANEL_SOFT)

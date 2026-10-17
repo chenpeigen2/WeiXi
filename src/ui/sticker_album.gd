@@ -21,11 +21,11 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
 	_panel = StyleBoxFlat.new()
-	_panel.bg_color = Color(0.14, 0.10, 0.20, 0.98)
-	_panel.border_color = Color(1.0, 0.78, 0.88, 0.30)
+	_panel.bg_color = Color(1.0, 0.95, 0.94, 0.98)
+	_panel.border_color = Ui.LAVENDER
 	_panel.set_border_width_all(1)
 	_panel.set_corner_radius_all(30)
-	_panel.shadow_color = Color(0, 0, 0, 0.45)
+	_panel.shadow_color = Color(0.12, 0.05, 0.09, 0.45)
 	_panel.shadow_size = 24
 
 
@@ -48,7 +48,7 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(0, 0, Ui.SCREEN_W, Ui.SCREEN_H), Color(0.04, 0.025, 0.07, 0.74))
+	draw_rect(Rect2(0, 0, Ui.SCREEN_W, Ui.SCREEN_H), Color(0.35, 0.28, 0.46, 0.55))
 	draw_style_box(_panel, PANEL)
 	var total := StickerBook.TOTAL
 	var owned: int = _book.count() if _book != null else 0
@@ -60,8 +60,20 @@ func _draw() -> void:
 		UiFont, Vector2(105, 369), "完成愿望，解锁一张小贴纸",
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Ui.TEXT_DIM
 	)
+	# 蝴蝶结 + 一排小爱心
+	_bow(Vector2(88, 334), 7.0)
+	for i in range(3):
+		_tiny_heart(Vector2(108 + i * 18, 382), 3.2, Ui.ROSE, 0.75)
+	# 糖霜花边
+	var lace := Color(1.0, 0.66, 0.76, 0.55)
+	var dx := PANEL.position.x + 30.0
+	while dx < PANEL.end.x - 30.0:
+		draw_circle(Vector2(dx, PANEL.position.y + 10.0), 2.0, lace)
+		draw_circle(Vector2(dx, PANEL.end.y - 10.0), 2.0, lace)
+		dx += 24.0
 	# 关闭按钮
-	draw_circle(Vector2(649, 331), 17, Color(1, 0.86, 0.93, 0.10))
+	draw_circle(Vector2(649, 331), 17, Color(1.0, 0.84, 0.89, 0.9))
+	draw_arc(Vector2(649, 331), 17, 0, TAU, 32, Ui.PANEL_STROKE, 1.2, true)
 	draw_string(
 		UiFont, Vector2(638, 339), "×",
 		HORIZONTAL_ALIGNMENT_CENTER, 22, 22, Ui.TEXT_MAIN
@@ -88,7 +100,7 @@ func _draw() -> void:
 
 
 func _draw_sticker(index: int, c: Vector2, unlocked: bool) -> void:
-	var base: Color = StickerBook.COLORS[index] if unlocked else Color(0.20, 0.15, 0.25)
+	var base: Color = StickerBook.COLORS[index] if unlocked else Color(1.0, 0.86, 0.90)
 	if unlocked:
 		draw_circle(c, 43, Color(base.r, base.g, base.b, 0.22))
 		draw_circle(c, 38, base)
@@ -97,10 +109,10 @@ func _draw_sticker(index: int, c: Vector2, unlocked: bool) -> void:
 		_symbol(index, c, 24, Color(0.24, 0.12, 0.23, 0.88))
 	else:
 		draw_circle(c, 40, base)
-		draw_arc(c, 43, 0, TAU, 48, Color(1, 1, 1, 0.08), 2.0, true)
+		draw_arc(c, 43, 0, TAU, 48, Ui.LAVENDER, 2.0, true)
 		draw_string(
 			UiFont, c + Vector2(-12, 10), "?",
-			HORIZONTAL_ALIGNMENT_CENTER, 24, 28, Color(1, 1, 1, 0.28)
+			HORIZONTAL_ALIGNMENT_CENTER, 24, 28, Color(0.55, 0.36, 0.44, 0.55)
 		)
 
 
@@ -187,3 +199,22 @@ func _cloud(c: Vector2, r: float, col: Color) -> void:
 	draw_circle(c + Vector2(0, -r * 0.12), r * 0.48, col)
 	draw_circle(c + Vector2(r * 0.40, r * 0.10), r * 0.34, col)
 	draw_rect(Rect2(c + Vector2(-r * 0.62, r * 0.08), Vector2(r * 1.25, r * 0.38)), col)
+
+
+func _tiny_heart(p: Vector2, s: float, c: Color, a: float) -> void:
+	var col := Color(c.r, c.g, c.b, a)
+	draw_circle(p + Vector2(-s * 0.38, -s * 0.18), s * 0.48, col)
+	draw_circle(p + Vector2(s * 0.38, -s * 0.18), s * 0.48, col)
+	draw_colored_polygon(PackedVector2Array([
+		p + Vector2(-s * 0.82, -s * 0.05), p + Vector2(s * 0.82, -s * 0.05), p + Vector2(0, s * 0.85),
+	]), col)
+
+
+func _bow(p: Vector2, s: float) -> void:
+	draw_colored_polygon(PackedVector2Array([
+		p, p + Vector2(-s, -s * 0.6), p + Vector2(-s, s * 0.6),
+	]), Ui.MINT)
+	draw_colored_polygon(PackedVector2Array([
+		p, p + Vector2(s, -s * 0.6), p + Vector2(s, s * 0.6),
+	]), Ui.MINT)
+	draw_circle(p, s * 0.28, Ui.PANEL_SOFT)

@@ -13,10 +13,12 @@ static func draw_ball(ci: CanvasItem, pos: Vector2, r: float, color: Color, alph
 		return
 
 	# 柔和投影：球体落在面板上的接触阴影
-	_circle(ci, pos + Vector2(0, r * 0.14), r * 1.02, Color(0, 0, 0, 0.22 * alpha))
+	var shade := color.darkened(0.35)
+	shade.a = 0.16 * alpha
+	_circle(ci, pos + Vector2(0, r * 0.10), r * 1.0, shade)
 
 	# 球体主渐变：受光点偏左上，边缘压暗
-	var edge := color.darkened(0.30)
+	var edge := color.darkened(0.24)
 	edge.a *= alpha
 	var core := color.lightened(0.32)
 	core.a *= alpha

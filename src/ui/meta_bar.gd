@@ -24,9 +24,9 @@ func _ready() -> void:
 	position = Vector2(0, 1204)
 	size = Vector2(Ui.SCREEN_W, 71)
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	_idle = _box(Ui.PANEL, Ui.PANEL_STROKE)
-	_active = _box(Ui.ACCENT, Color(1, 0.94, 0.97, 0.9))
-	_sticker_bg = _box(Color(1, 0.86, 0.93, 0.10), Color(1, 0.86, 0.93, 0.22))
+	_idle = _box(Ui.PANEL, Ui.MINT)
+	_active = _box(Ui.ACCENT, Ui.ROSE)
+	_sticker_bg = _box(Ui.PANEL, Ui.LAVENDER)
 
 
 func _box(bg: Color, border: Color) -> StyleBoxFlat:
@@ -48,22 +48,25 @@ func _draw() -> void:
 	_draw_chip(DAILY_RECT, "每日挑战", daily)
 	_draw_chip(RANDOM_RECT, "随机", not daily)
 	draw_style_box(_sticker_bg, STICKER_RECT)
+	_heart(Vector2(STICKER_RECT.position.x + 14, STICKER_RECT.position.y + 16), 4.2, Ui.ROSE, 0.9)
 	var text := "贴纸册 %d/%d" % [sticker_count, 12]
 	draw_string(
-		UiFont, Vector2(STICKER_RECT.position.x + 14, STICKER_RECT.position.y + 21),
-		text, HORIZONTAL_ALIGNMENT_LEFT, STICKER_RECT.size.x - 24, 14, Ui.TEXT_MAIN
+		UiFont, Vector2(STICKER_RECT.position.x + 26, STICKER_RECT.position.y + 21),
+		text, HORIZONTAL_ALIGNMENT_LEFT, STICKER_RECT.size.x - 38, 14, Ui.TEXT_MAIN
 	)
 	# 小星星标记
 	var star := STICKER_RECT.position + Vector2(STICKER_RECT.size.x - 20, 16)
-	_star(star, 5.0, Ui.ACCENT)
+	_star(star, 5.0, Ui.ROSE)
 
 
 func _draw_chip(rect: Rect2, text: String, active: bool) -> void:
 	draw_style_box(_active if active else _idle, rect)
-	var color := Color(0.22, 0.08, 0.14) if active else Ui.TEXT_DIM
+	var color := Color(0.30, 0.10, 0.18) if active else Ui.TEXT_DIM
+	_heart(Vector2(rect.position.x + 13.0, rect.position.y + 16.0), 4.0,
+		Color(0.55, 0.18, 0.28) if active else Ui.ROSE, 0.9)
 	draw_string(
-		UiFont, Vector2(rect.position.x, rect.position.y + 21),
-		text, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x, 14, color
+		UiFont, Vector2(rect.position.x + 8.0, rect.position.y + 21),
+		text, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 16.0, 14, color
 	)
 
 
@@ -87,3 +90,12 @@ func _gui_input(event: InputEvent) -> void:
 		elif STICKER_RECT.has_point(p):
 			stickers_pressed.emit()
 			accept_event()
+
+
+func _heart(p: Vector2, s: float, c: Color, a: float) -> void:
+	var col := Color(c.r, c.g, c.b, a)
+	draw_circle(p + Vector2(-s * 0.38, -s * 0.18), s * 0.48, col)
+	draw_circle(p + Vector2(s * 0.38, -s * 0.18), s * 0.48, col)
+	draw_colored_polygon(PackedVector2Array([
+		p + Vector2(-s * 0.82, -s * 0.05), p + Vector2(s * 0.82, -s * 0.05), p + Vector2(0, s * 0.85),
+	]), col)

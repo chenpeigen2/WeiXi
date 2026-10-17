@@ -44,11 +44,11 @@ static func clamp_center(pos: Vector2) -> Vector2:
 func _ready() -> void:
 	visible = false
 	_panel = StyleBoxFlat.new()
-	_panel.bg_color = Color(0.14, 0.10, 0.19, 0.96)
-	_panel.border_color = Ui.PANEL_STROKE
+	_panel.bg_color = Color(1.0, 0.94, 0.94, 0.98)
+	_panel.border_color = Ui.ROSE
 	_panel.set_border_width_all(1)
 	_panel.set_corner_radius_all(int(Ui.PANEL_RADIUS_LARGE))
-	_panel.shadow_color = Color(0, 0, 0, 0.35)
+	_panel.shadow_color = Color(0.12, 0.05, 0.09, 0.35)
 	_panel.shadow_size = 12
 	_panel.shadow_offset = Vector2(0, 6)
 
@@ -104,8 +104,13 @@ func _draw() -> void:
 	draw_line(
 		Vector2(rect.position.x + 28.0, rect.position.y + 1.0),
 		Vector2(rect.end.x - 28.0, rect.position.y + 1.0),
-		Color(1, 1, 1, 0.10), 1.0
+		Color(1.0, 0.66, 0.76, 0.65), 1.0
 	)
+	var lace := Color(0.80, 0.73, 0.95, 0.55)
+	var dx := rect.position.x + 28.0
+	while dx < rect.end.x - 28.0:
+		draw_circle(Vector2(dx, rect.position.y + 8.0), 2.0, lace)
+		dx += 24.0
 
 	# 指向目标球的三角：上方弹出时朝下，下方弹出时朝上。
 	var half_h := PANEL_H / 2.0
@@ -131,9 +136,9 @@ func _draw() -> void:
 			halo.a = 0.08
 			draw_circle(p, r + 10.0, halo)
 		elif i == _hover:
-			draw_circle(p, r + 8.0, Color(1, 1, 1, 0.06))
+			draw_circle(p, r + 8.0, Color(1.0, 0.70, 0.80, 0.22))
 		BallDraw.draw_ball(self, p, r, Ui.BALL_COLORS[i])
 		if i == _hover:
-			draw_arc(p, r + 3.0, 0, TAU, 36, Color(1, 1, 1, 0.85), 2.0, true)
+			draw_arc(p, r + 3.0, 0, TAU, 36, Ui.HEART, 2.0, true)
 		if i == current_color:
 			draw_arc(p, r + 6.0, 0, TAU, 36, Ui.ACCENT, 2.0, true)

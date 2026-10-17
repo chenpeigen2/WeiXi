@@ -22,7 +22,7 @@ void fragment() {
 	// 径向暗角：smoothstep 代替四个硬边圆，避免花瓣状接缝。
 	float d = distance(uv, vec2(0.5, 0.44));
 	float vig = smoothstep(0.28, 0.90, d);
-	col = mix(col, vec3(0.055, 0.030, 0.085), vig * 0.62);
+	col = mix(col, vec3(0.72, 0.67, 0.84), vig * 0.32);
 
 	// 顶部微光：柔和椭圆，不是 390px 的圆。
 	float glow = 1.0 - smoothstep(0.0, 0.62, distance(uv, vec2(0.5, -0.06)));
@@ -42,6 +42,7 @@ void fragment() {
 
 var _bubbles: Array[Dictionary] = []
 var _stars: Array[Dictionary] = []
+var _clouds: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -55,7 +56,7 @@ func _ready() -> void:
 			"y": rng.randf_range(0, Ui.SCREEN_H),
 			"r": rng.randf_range(6, 26),
 			"speed": rng.randf_range(8, 22),
-			"a": rng.randf_range(0.03, 0.07),
+			"a": rng.randf_range(0.10, 0.18),
 		})
 	for i in range(12):
 		_stars.append({
@@ -65,6 +66,11 @@ func _ready() -> void:
 			"phase": rng.randf_range(0.0, TAU),
 			"speed": rng.randf_range(0.6, 1.4),
 		})
+	_clouds = [
+		{"x": 78.0, "y": 968.0, "s": 1.0, "a": 0.46},
+		{"x": 664.0, "y": 1032.0, "s": 0.82, "a": 0.38},
+		{"x": 604.0, "y": 936.0, "s": 0.46, "a": 0.30},
+	]
 
 
 ## 静态渐变层：一个带 shader 的 ColorRect，只创建一次，不参与每帧重绘。
@@ -99,12 +105,24 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
+	for c in _clouds:
+		_cloud(Vector2(c["x"], c["y"]), c["s"], c["a"])
 	for b in _bubbles:
-		draw_circle(Vector2(b["x"], b["y"]), b["r"], Color(1, 1, 1, b["a"]))
+		draw_circle(Vector2(b["x"], b["y"]), b["r"], Color(1.0, 0.88, 0.90, b["a"]))
 	var t := Time.get_ticks_msec() / 1000.0
 	for st in _stars:
-		var a: float = 0.10 + 0.12 * (0.5 + 0.5 * sin(t * st["speed"] + st["phase"]))
+		var a: float = 0.18 + 0.14 * (0.5 + 0.5 * sin(t * st["speed"] + st["phase"]))
 		_star(Vector2(st["x"], st["y"]), st["s"], Color(Ui.STAR.r, Ui.STAR.g, Ui.STAR.b, a))
+
+
+## 奶油云：几个圆叠在一起，软乎乎的底部。
+func _cloud(p: Vector2, s: float, a: float) -> void:
+	var c := Color(1.0, 0.95, 0.91, a)
+	draw_circle(p + Vector2(-34, 4) * s, 20 * s, c)
+	draw_circle(p + Vector2(-8, -8) * s, 27 * s, c)
+	draw_circle(p + Vector2(24, 2) * s, 21 * s, c)
+	draw_circle(p + Vector2(42, 10) * s, 13 * s, c)
+	draw_rect(Rect2(p + Vector2(-48, 6) * s, Vector2(96, 24) * s), c)
 
 
 ## 四角小星星：两个交叉的细长菱形，矢量绘制。

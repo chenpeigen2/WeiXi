@@ -82,7 +82,7 @@ func _draw() -> void:
 	var r: float = game.layout.radius
 
 	# 底座星能环：白环打底，粉色弧显示当前星星进度；满环进入 Fever。
-	draw_arc(p, r * 1.5, 0, TAU, 64, Color(1, 1, 1, 0.12), 4.0, true)
+	draw_arc(p, r * 1.5, 0, TAU, 64, Color(0.50, 0.38, 0.54, 0.30), 4.0, true)
 	var star_ratio: float = float(game.scorer.star) / 100.0
 	if game.scorer.fever_charges > 0:
 		var halo := Ui.ACCENT
@@ -103,7 +103,9 @@ func _draw() -> void:
 			var halo := Ui.BALL_COLORS[_preview_color]
 			halo.a = 0.20 * (1.0 - t)
 			draw_circle(pt, 7.0, halo)
-			draw_circle(pt, 4.0, Color(1, 1, 1, lerpf(0.55, 0.16, t)))
+			var dot := Ui.INK
+			dot.a = lerpf(0.58, 0.18, t)
+			draw_circle(pt, 4.0, dot)
 		if not _preview_points.is_empty():
 			# alpha 0.30 的橙球叠在深蓝上会发褐；提高填充并加同色描边。
 			var ghost := Ui.BALL_COLORS[_preview_color]
@@ -112,8 +114,8 @@ func _draw() -> void:
 			var ring := Ui.BALL_COLORS[_preview_color]
 			ring.a = 0.95
 			draw_arc(_preview_target, r, 0, TAU, 40, ring, 2.5, true)
-			draw_arc(_preview_target, r * 0.52, 0, TAU, 32, Color(1, 1, 1, 0.55), 1.5, true)
-			draw_circle(_preview_target, 3.0, Color(1, 1, 1, 0.80))
+			draw_arc(_preview_target, r * 0.52, 0, TAU, 32, Color(1.0, 0.96, 0.93, 0.75), 1.5, true)
+			draw_circle(_preview_target, 3.0, Color(1.0, 0.96, 0.93, 0.90))
 
 	# 当前球；5+ 后下一发是星星炸弹，用光晕 + 星徽提示
 	if game.star_shot:
@@ -122,7 +124,7 @@ func _draw() -> void:
 		draw_circle(p, r * 1.16, shot_glow)
 	BallDraw.draw_ball(self, p, r, Ui.BALL_COLORS[game.current_color], 1.0, true)
 	if game.star_shot:
-		_star_marker(p + Vector2(r * 0.72, -r * 0.72), 9.0, Color(1, 1, 1, 0.96))
+		_star_marker(p + Vector2(r * 0.72, -r * 0.72), 9.0, Color(1.0, 0.97, 0.94, 0.98))
 
 	# 飞行球
 	if not _flight.is_empty():
@@ -130,7 +132,7 @@ func _draw() -> void:
 
 	# 下一球预告（右侧小球 + 引导环 + 标签）
 	var next_pos := p + Vector2(r * 2.9, r * 0.7)
-	draw_arc(next_pos, r * 0.73, 0, TAU, 32, Color(1, 1, 1, 0.22), 2.0, true)
+	draw_arc(next_pos, r * 0.73, 0, TAU, 32, Color(0.50, 0.38, 0.54, 0.38), 2.0, true)
 	BallDraw.draw_ball(self, next_pos, r * 0.53, Ui.BALL_COLORS[game.next_color], 1.0, true)
 	draw_string(
 		UiFont, Vector2(next_pos.x - 28.0, next_pos.y + 40.0), "下一颗",
