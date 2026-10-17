@@ -84,7 +84,7 @@ func _draw() -> void:
 	# 底座星能环：白环打底，粉色弧显示当前星星进度；满环进入 Fever。
 	draw_arc(p, r * 1.5, 0, TAU, 64, Color(1, 1, 1, 0.12), 4.0, true)
 	var star_ratio: float = float(game.scorer.star) / 100.0
-	if game.scorer.fever_shots > 0:
+	if game.scorer.fever_charges > 0:
 		var halo := Ui.ACCENT
 		halo.a = 0.10
 		draw_arc(p, r * 1.75, 0, TAU, 64, halo, 8.0, true)

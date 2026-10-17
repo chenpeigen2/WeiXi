@@ -50,10 +50,10 @@ func test_deadline_gives_one_more_shot_grace() -> void:
 	assert_eq(res1["overflow"].size(), 0, "触线球暂留, 宽限一发")
 	assert_true(g.board.has_ball(Vector2i(0, 13)), "球留在场上")
 	g.set_current_color(2)
-	var res2: Dictionary = g.attach_ball(Vector2i(8, 11)) # 再打一个
+	var res2: Dictionary = g.attach_ball(Vector2i(0, 11)) # 再打一个（合法格）
 	assert_has(res2["overflow"], Vector2i(0, 13), "再打一个之后最低行才掉落")
 	assert_false(g.board.has_ball(Vector2i(0, 13)), "掉落行清空")
-	assert_true(g.board.has_ball(Vector2i(8, 11)), "新打的球不受影响")
+	assert_true(g.board.has_ball(Vector2i(0, 11)), "新打的球不受影响")
 	assert_eq(g.board.rows, Game.MAX_ROWS, "棋盘容量不变")
 
 
@@ -124,10 +124,10 @@ func test_trigger_shot_survives_while_overdue_row_drops() -> void:
 	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
 	g.board.set_ball(Vector2i(0, 13), 1) # 逾期行(触线)
 	g.set_current_color(2)
-	var res: Dictionary = g.attach_ball(Vector2i(5, 13)) # 触发的这一发也落线行
+	var res: Dictionary = g.attach_ball(Vector2i(2, 13)) # 触发的这一发也落线行
 	assert_has(res["overflow"], Vector2i(0, 13), "逾期行掉落")
 	assert_false(g.board.has_ball(Vector2i(0, 13)), "旧球清掉")
-	assert_true(g.board.has_ball(Vector2i(5, 13)), "这一发不陪葬, 落在腾出的行")
+	assert_true(g.board.has_ball(Vector2i(2, 13)), "这一发不陪葬, 落在腾出的行")
 
 
 func test_overflow_drop_takes_unsupported_balls() -> void:
@@ -178,10 +178,10 @@ func test_overflow_drop_gives_star_dust() -> void:
 	g.board.set_ball(Vector2i(0, 13), 1) # 触线
 	g.set_current_color(2)
 	var before: int = g.scorer.star
-	var res: Dictionary = g.attach_ball(Vector2i(5, 13))
+	var res: Dictionary = g.attach_ball(Vector2i(2, 13))
 	assert_true(res["overflow"].size() > 0, "掉行发生")
 	assert_true(int(res["overflow_star"]) > 0, "掉行给星尘")
-	assert_true(g.scorer.star > before or g.scorer.fever_shots > 0, "星星增加或进入 Fever")
+	assert_true(g.scorer.star > before or g.scorer.fever_charges > 0, "星星增加或进入 Fever")
 
 
 func test_clear_notifies_wish_progress() -> void:
@@ -197,17 +197,17 @@ func test_clear_notifies_wish_progress() -> void:
 	assert_true(g.wishes.active != null, "始终有一条愿望")
 
 
-func test_fever_shot_consumes_even_on_miss() -> void:
+func test_fever_miss_does_not_consume() -> void:
 	var g := Game.new(1)
 	g.board = Board.new(10, 12)
 	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
 	g.scorer.add_star(100)
 	g.set_current_color(2)
 	g.attach_ball(Vector2i(0, 1)) # 空枪
-	assert_eq(g.scorer.fever_shots, 2, "空枪也消耗一发")
+	assert_eq(g.scorer.fever_charges, 3, "空枪不消耗 Fever")
 
 
-func test_fever_shot_doubles_clear() -> void:
+func test_fever_clear_doubles_and_consumes() -> void:
 	var g := Game.new(1)
 	g.board = Board.new(10, 12)
 	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
@@ -217,11 +217,11 @@ func test_fever_shot_doubles_clear() -> void:
 	g.scorer.add_star(100)
 	var res: Dictionary = g.attach_ball(Vector2i(0, 1))
 	assert_eq(res["popped"].size(), 3)
-	assert_eq(res["gain"], 60, "Fever 射击 x2")
-	assert_eq(g.scorer.fever_shots, 2)
+	assert_eq(res["gain"], 60, "Fever 消除 x2")
+	assert_eq(g.scorer.fever_charges, 2)
 
 
-func test_swap_during_fever_neither_doubles_nor_consumes() -> void:
+func test_swap_during_fever_doubles_and_consumes() -> void:
 	var g := Game.new(1)
 	g.board = Board.new(10, 12)
 	g.board.set_ball(Vector2i(2, 0), 3) # 锚点
@@ -232,8 +232,8 @@ func test_swap_during_fever_neither_doubles_nor_consumes() -> void:
 	g.scorer.add_star(100)
 	var res: Dictionary = g.try_swap(Vector2i(2, 1), Vector2i(2, 2))
 	assert_true(res["matched"])
-	assert_eq(res["gain"], 50, "互换不享受 Fever x2")
-	assert_eq(g.scorer.fever_shots, 3, "互换不消耗 Fever")
+	assert_eq(res["gain"], 100, "互换同样享受 Fever x2")
+	assert_eq(g.scorer.fever_charges, 2, "互换同样消耗 Fever")
 
 
 func test_five_clear_arms_star_shot() -> void:
@@ -255,7 +255,6 @@ func test_star_shot_bursts_neighbor_ring() -> void:
 	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
 	var center := Vector2i(2, 2)
 	var neighbors: Array[Vector2i] = HexGrid.neighbors(center)
-	g.board.set_ball(center, 2)
 	g.board.set_ball(neighbors[0], 4)
 	g.board.set_ball(neighbors[1], 5)
 	g.star_shot = true

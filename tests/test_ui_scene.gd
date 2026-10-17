@@ -114,3 +114,15 @@ func test_wish_completion_unlocks_stickers() -> void:
 	assert_eq(node.sticker_book.count(), mini(before + 3, 12), "完成多条愿望解锁多张贴纸")
 	assert_eq(node.meta_bar.sticker_count, node.sticker_book.count(), "底部计数同步")
 	node.free()
+
+
+func test_sticker_album_ignores_flight_and_swap() -> void:
+	var node := _instantiate_main()
+	node.shooter._flight = {"dummy": true}
+	node._on_stickers()
+	assert_false(node.album.visible, "飞行中不打开相册")
+	node.shooter._flight = {}
+	node._on_stickers()
+	assert_true(node.album.visible, "空闲时可打开")
+	node.album.close()
+	node.free()

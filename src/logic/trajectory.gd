@@ -44,13 +44,17 @@ static func _simulate(board, layout, from: Vector2, dir: Vector2, board_pixel_wi
 		var near: Vector2i = layout.pixel_to_cell(pos)
 		var candidates: Array[Vector2i] = [near]
 		candidates.append_array(HexGrid.neighbors(near))
-		var hit := false
+		var hit_ball := Vector2i(-999, -999)
+		var hit_dist := INF
 		for c in candidates:
-			if board.has_ball(c) and layout.cell_to_pixel(c).distance_to(pos) < layout.diameter * 0.85:
-				cell = _nearest_empty_neighbor(board, layout, c, pos)
-				hit = true
-				break
-		if hit:
+			if not board.has_ball(c):
+				continue
+			var d: float = layout.cell_to_pixel(c).distance_to(pos)
+			if d < layout.diameter * 0.85 and d < hit_dist:
+				hit_dist = d
+				hit_ball = c
+		if hit_ball.x != -999:
+			cell = _nearest_empty_neighbor(board, layout, hit_ball, pos)
 			break
 	if max_points > 0:
 		points.append(pos)

@@ -57,7 +57,7 @@ func set_ball_color(cell: Vector2i, color: int) -> Dictionary:
 	res = board.resolve_at(cell)
 	if not res["popped"].is_empty():
 		_prepare_clear(res)
-		res["gain"] = scorer.register_clear(res["popped"].size(), res["dropped"].size(), false)
+		res["gain"] = scorer.register_clear(res["popped"].size(), res["dropped"].size())
 		_notify_clear(res)
 	else:
 		res["gain"] = 0
@@ -72,13 +72,17 @@ func set_ball_color(cell: Vector2i, color: int) -> Dictionary:
 ## 新球不陪葬，掉行后失去支撑的悬空球跟着掉。
 func attach_ball(cell: Vector2i, color := -1, bounces := 0) -> Dictionary:
 	var ball_color := current_color if color < 0 else color
-	var fever_shot: bool = scorer.fever_shots > 0
-	var bomb := star_shot
-	star_shot = false
+	if not board.is_valid_cell(cell):
+		return {"popped": [], "dropped": [], "overflow": [], "gain": 0, "color_counts": {}}
 	var overflow: Array[Vector2i] = []
 	if board.lowest_occupied_row() >= deadline_row:
 		overflow = board.drop_overflow(deadline_row)
 		overflow.append_array(_drop_floating())
+	# 宽限掉落之后再校验：目标格可能就是刚被腾空的那一行。
+	if board.has_ball(cell):
+		return {"popped": [], "dropped": [], "overflow": overflow, "gain": 0, "color_counts": {}}
+	var bomb := star_shot
+	star_shot = false
 	board.set_ball(cell, ball_color)
 	var res: Dictionary
 	if bomb:
@@ -87,7 +91,7 @@ func attach_ball(cell: Vector2i, color := -1, bounces := 0) -> Dictionary:
 		res = board.resolve_at(cell)
 		_prepare_clear(res)
 	res["cell"] = cell
-	_score_result(res, fever_shot)
+	_score_result(res)
 
 	# 反弹奖励：不改变落球规则，只给技巧发糖。
 	if bounces > 0:
@@ -110,9 +114,6 @@ func attach_ball(cell: Vector2i, color := -1, bounces := 0) -> Dictionary:
 	res["overflow"] = overflow
 	current_color = next_color
 	next_color = _rand_color()
-	# “3 发”按发射严格消耗，空枪也算。
-	if fever_shot:
-		scorer.fever_shots -= 1
 	return res
 
 
@@ -121,7 +122,7 @@ func try_swap(a: Vector2i, b: Vector2i) -> Dictionary:
 	var res: Dictionary = board.swap(a, b)
 	if res["matched"]:
 		_prepare_clear(res)
-		_score_result(res, false)
+		_score_result(res)
 		_after_board_change(res, false)
 	return res
 
@@ -136,12 +137,12 @@ func aim_attach(from: Vector2, dir: Vector2) -> Vector2i:
 	return Trajectory.find_attach_cell(board, layout, from, dir, WIDTH * layout.diameter)
 
 
-func _score_result(res: Dictionary, fever := false) -> void:
+func _score_result(res: Dictionary) -> void:
 	if res["popped"].is_empty():
 		scorer.register_miss()
 		res["gain"] = 0
 	else:
-		res["gain"] = scorer.register_clear(res["popped"].size(), res["dropped"].size(), fever)
+		res["gain"] = scorer.register_clear(res["popped"].size(), res["dropped"].size())
 		_notify_clear(res)
 
 

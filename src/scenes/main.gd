@@ -110,7 +110,7 @@ func refresh() -> void:
 	deadline_view.queue_redraw()
 	shooter.queue_redraw()
 	picker.set_current(game.current_color)
-	score_panel.set_score(game.scorer.score, game.scorer.combo, game.scorer.fever_shots)
+	score_panel.set_score(game.scorer.score, game.scorer.combo, game.scorer.fever_charges)
 
 	if game.wishes.completion_count != _last_wish_completion:
 		var gained: int = game.wishes.completion_count - _last_wish_completion
@@ -254,6 +254,14 @@ func _on_random() -> void:
 
 
 func _on_stickers() -> void:
+	# 飞行/互换中不打开相册，避免盖住正在结算的球
+	if shooter.is_flying() or fx_layer.is_swapping():
+		return
+	if color_popup.active:
+		color_popup.close()
+		selected = INVALID_CELL
+		_popup_cell = INVALID_CELL
+		refresh()
 	album.open(sticker_book)
 
 
