@@ -21,6 +21,9 @@ func _ready() -> void:
 	_panel.border_color = Ui.PANEL_STROKE
 	_panel.set_border_width_all(1)
 	_panel.set_corner_radius_all(int(Ui.PANEL_RADIUS_LARGE))
+	_panel.shadow_color = Color(0, 0, 0, 0.22)
+	_panel.shadow_size = 16
+	_panel.shadow_offset = Vector2(0, 6)
 
 
 func cam_origin() -> Vector2:
@@ -37,11 +40,18 @@ func _draw() -> void:
 	var panel_top_y: float = BoardCamera.panel_top(origin.y, layout.radius)
 	var panel_bottom_y: float = BoardCamera.panel_bottom(game.deadline_row, layout.row_height, layout.radius, origin.y)
 	draw_style_box(_panel, Rect2(
-		Ui.BOARD_MARGIN_X - 8,
+		Ui.BOARD_PANEL_X,
 		panel_top_y,
-		Ui.SCREEN_W - (Ui.BOARD_MARGIN_X - 8) * 2,
+		Ui.BOARD_PANEL_W,
 		panel_bottom_y - panel_top_y
 	))
+
+	# 顶部 1px 高光：玻璃面板的“反光边”。
+	draw_line(
+		Vector2(Ui.BOARD_PANEL_X + 26.0, panel_top_y + 1.0),
+		Vector2(Ui.BOARD_PANEL_X + Ui.BOARD_PANEL_W - 26.0, panel_top_y + 1.0),
+		Color(1, 1, 1, 0.08), 1.0
+	)
 
 	# 球（滑出顶部的行隐藏不画）
 	var r: float = layout.radius
@@ -53,7 +63,8 @@ func _draw() -> void:
 			continue
 		BallDraw.draw_ball(self, pos, r * 0.95, Ui.BALL_COLORS[game.board.get_color(cell)])
 
-	# 三消选中环
+	# 三消选中环：外层柔光 + 内层实线
 	if selected != INVALID_CELL and game.board.has_ball(selected):
 		var pos: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(selected), 1.0, origin)
+		draw_arc(pos, r * 1.16, 0, TAU, 40, Color(1, 1, 1, 0.10), 7.0, true)
 		draw_arc(pos, r * 1.05, 0, TAU, 40, Ui.SELECTION, 3.5, true)

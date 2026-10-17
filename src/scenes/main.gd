@@ -63,9 +63,9 @@ func _ready() -> void:
 	hint_label = Label.new()
 	hint_label.name = "HintLabel"
 	hint_label.text = "拖动瞄准 · 松手发射"
-	hint_label.position = Vector2(480, 30)
-	hint_label.size = Vector2(246, 34)
-	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hint_label.position = Vector2(Ui.HINT_X, Ui.HINT_Y)
+	hint_label.size = Vector2(Ui.HINT_W, Ui.HINT_H)
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hint_label.add_theme_font_size_override("font_size", 24)
 	hint_label.add_theme_color_override("font_color", Ui.ACCENT)

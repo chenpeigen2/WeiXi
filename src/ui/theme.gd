@@ -35,6 +35,8 @@ const SCREEN_H := 1275.0
 const BOARD_TOP := 129.0 # 顶行球圆心: HUD底(~84) + 球半径33 + 留白12
 const BOARD_AREA_H := 870.0 # 棋盘可见高度，超出上滑隐藏并裁剪
 const BOARD_MARGIN_X := 36.0
+const BOARD_PANEL_X := 28.0 # 棋盘面板左沿 = BOARD_MARGIN_X - 8
+const BOARD_PANEL_W := 694.0 # 750 - 28*2，HUD 与棋盘共用
 const SHOOTER_POS := Vector2(375, 1038)
 const PICKER_CENTER := Vector2(375, 1164)
 const PICKER_DX := 93.0
@@ -42,10 +44,16 @@ const PICKER_R := 24.0
 const PICKER_HIT_R := 33.0
 
 # ---- HUD 分区（分数文字 / 连击胶囊 不得重叠） ----
-const SCORE_TEXT_MAX_X := 270.0 # 分数文字最远到面板内 x=270
-const COMBO_PILL_X := 280.0 # 连击胶囊从 x=280 起
+const SCORE_TEXT_MAX_X := 210.0 # 分数文字最远到面板内 x=210（给中间提示留位）
+const COMBO_PILL_X := 532.0 # 连击胶囊从 x=532 起（整条 HUD 的右侧）
 const COMBO_PILL_Y := 13.0
 const COMBO_PILL_W := 138.0
 const COMBO_PILL_H := 38.0
-const SCORE_PANEL_W := 440.0
+const SCORE_PANEL_X := 28.0 # 与棋盘面板左沿对齐
+const SCORE_PANEL_Y := 12.0
+const SCORE_PANEL_W := 694.0 # 与棋盘面板同宽
 const SCORE_PANEL_H := 64.0
+const HINT_X := 245.0 # 提示居中在分数与连击之间
+const HINT_Y := 27.0
+const HINT_W := 260.0
+const HINT_H := 34.0

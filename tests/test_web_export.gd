@@ -30,4 +30,4 @@ func test_game_content_scales_to_fit_any_window() -> void:
 	var cfg := ConfigFile.new()
 	assert_eq(cfg.load("res://project.godot"), OK, "project.godot 可解析")
 	assert_eq(cfg.get_value("display", "window/stretch/mode", ""), "canvas_items", "内容等比缩放")
-	assert_eq(cfg.get_value("display", "window/stretch/aspect", ""), "keep", "完整显示不裁切")
+	assert_eq(str(cfg.get_value("display", "window/stretch/aspect", "keep")), "keep", "完整显示不裁切（默认 keep）")

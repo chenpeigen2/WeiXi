@@ -101,6 +101,11 @@ func _draw() -> void:
 
 	var rect := Rect2(_center - Vector2(PANEL_W, PANEL_H) / 2.0, Vector2(PANEL_W, PANEL_H))
 	draw_style_box(_panel, rect)
+	draw_line(
+		Vector2(rect.position.x + 28.0, rect.position.y + 1.0),
+		Vector2(rect.end.x - 28.0, rect.position.y + 1.0),
+		Color(1, 1, 1, 0.10), 1.0
+	)
 
 	# 指向目标球的三角：上方弹出时朝下，下方弹出时朝上。
 	var half_h := PANEL_H / 2.0
@@ -121,6 +126,12 @@ func _draw() -> void:
 	for i in range(6):
 		var p := swatch_pos(_center, i)
 		var r := SWATCH_R * (1.12 if i == current_color else 1.0)
+		if i == current_color:
+			var halo := Ui.ACCENT
+			halo.a = 0.08
+			draw_circle(p, r + 10.0, halo)
+		elif i == _hover:
+			draw_circle(p, r + 8.0, Color(1, 1, 1, 0.06))
 		BallDraw.draw_ball(self, p, r, Ui.BALL_COLORS[i])
 		if i == _hover:
 			draw_arc(p, r + 3.0, 0, TAU, 36, Color(1, 1, 1, 0.85), 2.0, true)

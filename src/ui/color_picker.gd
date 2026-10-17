@@ -28,6 +28,9 @@ func _ready() -> void:
 	_panel.border_color = Ui.PANEL_STROKE
 	_panel.set_border_width_all(1)
 	_panel.set_corner_radius_all(int(Ui.PANEL_RADIUS_LARGE))
+	_panel.shadow_color = Color(0, 0, 0, 0.28)
+	_panel.shadow_size = 14
+	_panel.shadow_offset = Vector2(0, 6)
 
 
 func set_current(c: int) -> void:
@@ -45,6 +48,11 @@ func set_hover(pos: Vector2) -> void:
 func _draw() -> void:
 	var rect := Rect2(pos_of(0) - Vector2(50, 45), Vector2(Ui.PICKER_DX * 5 + 99, 90))
 	draw_style_box(_panel, rect)
+	draw_line(
+		Vector2(rect.position.x + 30.0, rect.position.y + 1.0),
+		Vector2(rect.end.x - 30.0, rect.position.y + 1.0),
+		Color(1, 1, 1, 0.10), 1.0
+	)
 
 	# “换色”标题：让这条 6 色球不再像装饰。
 	draw_string(
@@ -59,6 +67,14 @@ func _draw() -> void:
 			r *= 1.15
 		elif i == hover:
 			r *= 1.08
+		if i == current:
+			var halo := Ui.ACCENT
+			halo.a = 0.05
+			draw_circle(p, r + 16.0, halo)
+			halo.a = 0.10
+			draw_circle(p, r + 10.0, halo)
+		elif i == hover:
+			draw_circle(p, r + 12.0, Color(1, 1, 1, 0.06))
 		BallDraw.draw_ball(self, p, r, Ui.BALL_COLORS[i])
 		if i == hover and i != current:
 			draw_arc(p, r + 5.0, 0, TAU, 36, Color(1, 1, 1, 0.75), 2.0, true)

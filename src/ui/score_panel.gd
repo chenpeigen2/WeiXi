@@ -12,10 +12,11 @@ var _combo_label: Label
 var _panel: StyleBoxFlat
 var _pill: StyleBoxFlat
 var _pill_rect := Rect2(Ui.COMBO_PILL_X, Ui.COMBO_PILL_Y, Ui.COMBO_PILL_W, Ui.COMBO_PILL_H)
+var _last_combo := 1
 
 
 func _ready() -> void:
-	position = Vector2(24, 12)
+	position = Vector2(Ui.SCORE_PANEL_X, Ui.SCORE_PANEL_Y)
 	size = Vector2(Ui.SCORE_PANEL_W, Ui.SCORE_PANEL_H)
 	custom_minimum_size = size
 
@@ -79,13 +80,26 @@ func set_score(score: int, combo: int) -> void:
 		var w: float = clampf(maxf(Ui.COMBO_PILL_W, min_w), Ui.COMBO_PILL_W, max_w)
 		_pill_rect = Rect2(Ui.COMBO_PILL_X, Ui.COMBO_PILL_Y, w, Ui.COMBO_PILL_H)
 		_combo_label.size = Vector2(w - 30.0, Ui.COMBO_PILL_H)
+		if combo > _last_combo:
+			_pop_combo()
+		_last_combo = combo
 	queue_redraw()
+
+
+## 连击升高时让胶囊里的字弹一下，给“连上了”一个手感。
+func _pop_combo() -> void:
+	if _combo_label == null:
+		return
+	_combo_label.pivot_offset = _combo_label.size * 0.5
+	_combo_label.scale = Vector2(1.14, 1.14)
+	var tw := create_tween()
+	tw.tween_property(_combo_label, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 ## 分数格式化：小分数用千分位，大分数压成 1.2万 / 1.2亿，避免撑爆面板。
 static func format_score(score: int) -> String:
 	var s: int = maxi(0, score)
-	if s >= 100000000:
+	if s >= 10000000:
 		return "%.1f亿" % (float(s) / 100000000.0)
 	if s >= 100000:
 		return "%.1f万" % (float(s) / 10000.0)
@@ -106,4 +120,5 @@ static func _group(n: int) -> String:
 
 func _draw() -> void:
 	draw_style_box(_panel, Rect2(Vector2.ZERO, size))
+	draw_line(Vector2(20.0, 0.5), Vector2(size.x - 20.0, 0.5), Color(1, 1, 1, 0.10), 1.0)
 	draw_style_box(_pill, _pill_rect)

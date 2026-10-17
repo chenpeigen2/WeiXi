@@ -12,7 +12,7 @@ func test_top_row_balls_do_not_intrude_hud() -> void:
 
 
 func test_score_text_and_combo_pill_do_not_overlap() -> void:
-	# 独立真值: 分数文字预留到 x=270, 连击胶囊从 276 开始, 中间有缝
+	# 独立真值: 分数文字预留到 x=210, 连击胶囊从 532 开始, 中间是提示区
 	assert_true(Ui.COMBO_PILL_X >= Ui.SCORE_TEXT_MAX_X + 4.0,
 		"分数(最远%.0f)与连击胶囊(%.0f)不重叠" % [Ui.SCORE_TEXT_MAX_X, Ui.COMBO_PILL_X])
 
@@ -38,3 +38,13 @@ func test_panel_top_covers_top_row_balls() -> void:
 	assert_true(abs(panel_top - 86.0) < 0.1, "框上沿=球上沿-10, 实际 %.2f" % panel_top)
 	assert_true(panel_top < ball_top, "框上沿必须在球上沿之上, 不得露出球顶")
 	assert_true(panel_top > 72.0, "框不得压到HUD(底72)")
+
+
+func test_hud_bar_matches_board_width_and_hint_zones() -> void:
+	# 独立真值：HUD 与棋盘同宽同左沿；分数 / 提示 / 连击三段互不重叠。
+	assert_eq(Ui.SCORE_PANEL_W, Ui.BOARD_PANEL_W, "HUD 与棋盘同宽")
+	assert_eq(Ui.SCORE_PANEL_X, Ui.BOARD_PANEL_X, "HUD 与棋盘同左沿")
+	assert_true(Ui.SCORE_PANEL_X + Ui.SCORE_TEXT_MAX_X <= Ui.HINT_X - 4.0,
+		"分数区不压中间提示")
+	assert_true(Ui.HINT_X + Ui.HINT_W <= Ui.COMBO_PILL_X - 4.0,
+		"中间提示不压连击胶囊")
