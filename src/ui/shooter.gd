@@ -41,6 +41,14 @@ func set_preview(points: PackedVector2Array, target: Vector2, color: int) -> voi
 	queue_redraw()
 
 
+func _star_marker(p: Vector2, s: float, c: Color) -> void:
+	var q: float = s * 0.22
+	draw_colored_polygon(PackedVector2Array([
+		p + Vector2(0, -s), p + Vector2(q, -q), p + Vector2(s, 0), p + Vector2(q, q),
+		p + Vector2(0, s), p + Vector2(-q, q), p + Vector2(-s, 0), p + Vector2(-q, -q),
+	]), c)
+
+
 func is_flying() -> bool:
 	return not _flight.is_empty()
 
@@ -73,9 +81,18 @@ func _draw() -> void:
 	var p := Ui.SHOOTER_POS
 	var r: float = game.layout.radius
 
-	# 底座：整圈细环 + 上半金色弧
-	draw_arc(p, r * 1.5, 0, TAU, 48, Color(1, 1, 1, 0.12), 4.0, true)
-	draw_arc(p, r * 1.5, PI, TAU, 24, Ui.ACCENT.darkened(0.15), 4.0, true)
+	# 底座星能环：白环打底，粉色弧显示当前星星进度；满环进入 Fever。
+	draw_arc(p, r * 1.5, 0, TAU, 64, Color(1, 1, 1, 0.12), 4.0, true)
+	var star_ratio: float = float(game.scorer.star) / 100.0
+	if game.scorer.fever_charges > 0:
+		var halo := Ui.ACCENT
+		halo.a = 0.10
+		draw_arc(p, r * 1.75, 0, TAU, 64, halo, 8.0, true)
+		draw_arc(p, r * 1.5, 0, TAU, 64, Ui.ACCENT, 4.0, true)
+	elif star_ratio > 0.0:
+		draw_arc(p, r * 1.5, -PI / 2.0, -PI / 2.0 + TAU * star_ratio, 64, Ui.ACCENT, 4.0, true)
+	# 星能环顶端的小星星：既是装饰，也是“这是一条能量环”的提示。
+	_star_marker(p + Vector2(0, -r * 1.5), 5.0, Ui.ACCENT)
 
 	# 弹道预测：带颜色光晕的点流 + 高可读的落点幽灵球
 	if _flight.is_empty():

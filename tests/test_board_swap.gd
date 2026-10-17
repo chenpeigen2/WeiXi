@@ -13,6 +13,7 @@ func test_swap_horizontal_match_pops_and_drops() -> void:
 	var res: Dictionary = b.swap(Vector2i(2, 1), Vector2i(2, 2))
 	assert_true(res["matched"], "互换产生消除")
 	assert_eq(res["popped"].size(), 3, "三个红球消除")
+	assert_eq(res["color_counts"].get(1, 0), 3, "互换结果带颜色统计")
 	# 换到 (2,2) 的蓝球失去与顶行的连接, 悬空掉落
 	assert_has(res["dropped"], Vector2i(2, 2))
 	assert_eq(b.ball_count(), 1, "只剩顶行锚点")

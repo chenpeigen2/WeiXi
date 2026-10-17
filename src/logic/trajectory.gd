@@ -21,15 +21,18 @@ static func _simulate(board, layout, from: Vector2, dir: Vector2, board_pixel_wi
 	var pos := from
 	var vel: Vector2 = dir.normalized() * (layout.radius * 0.25)
 	var cell := Vector2i(-999, -999)
+	var bounces := 0
 	for i in range(MAX_STEPS):
 		pos += vel
 		# 侧墙反弹（球心活动范围 [R, 宽-R]）
 		if pos.x < layout.radius:
 			pos.x = 2.0 * layout.radius - pos.x
 			vel.x = -vel.x
+			bounces += 1
 		elif pos.x > board_pixel_width - layout.radius:
 			pos.x = 2.0 * (board_pixel_width - layout.radius) - pos.x
 			vel.x = -vel.x
+			bounces += 1
 		# 路径采样
 		if max_points > 0 and i % 5 == 0 and points.size() < max_points:
 			points.append(pos)
@@ -51,7 +54,7 @@ static func _simulate(board, layout, from: Vector2, dir: Vector2, board_pixel_wi
 			break
 	if max_points > 0:
 		points.append(pos)
-	return {"cell": cell, "points": points}
+	return {"cell": cell, "points": points, "bounces": bounces}
 
 
 static func _nearest_empty_in_row(board, layout, pos: Vector2, r: int) -> Vector2i:

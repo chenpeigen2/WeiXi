@@ -5,6 +5,7 @@ const Board = preload("res://src/logic/board.gd")
 const Scorer = preload("res://src/logic/scorer.gd")
 const HexLayout = preload("res://src/logic/hex_layout.gd")
 const Trajectory = preload("res://src/logic/trajectory.gd")
+const WishSystem = preload("res://src/logic/wish_system.gd")
 
 const WIDTH := 10
 const MAX_ROWS := 14 # 固定容量（与相机可见容量一致，测试锁定）
@@ -15,6 +16,7 @@ const BALL_RADIUS := 33.0
 
 var board: RefCounted
 var scorer: RefCounted
+var wishes: RefCounted
 var layout: RefCounted
 var rng: RandomNumberGenerator
 var current_color := 0
@@ -29,6 +31,7 @@ func _init(p_seed := 0) -> void:
 	board = Board.new(WIDTH, MAX_ROWS)
 	scorer = Scorer.new()
 	board.refill_top(REFILL_ROWS, rng, COLOR_COUNT)
+	wishes = WishSystem.new(rng)
 	current_color = _rand_color()
 	next_color = _rand_color()
 
@@ -45,16 +48,18 @@ func set_current_color(c: int) -> void:
 ## 作弊1快捷手势：双击棋盘上已射出的球，弹出调色板换成任意颜色，
 ## 若形成 >=3 相连同色立即消除计分
 func set_ball_color(cell: Vector2i, color: int) -> Dictionary:
-	var res: Dictionary = {"popped": [], "dropped": [], "overflow": [], "gain": 0}
+	var res: Dictionary = {"popped": [], "dropped": [], "overflow": [], "gain": 0, "color_counts": {}}
 	if not board.has_ball(cell):
 		return res
 	board.cells[cell] = color
 	res = board.resolve_at(cell)
 	if not res["popped"].is_empty():
 		res["gain"] = scorer.register_clear(res["popped"].size(), res["dropped"].size())
+		_notify_clear(res)
 	else:
 		res["gain"] = 0
 	_after_board_change(res, false)
+	_notify_wish("recolor", {})
 	return res
 
 
@@ -62,7 +67,7 @@ func set_ball_color(cell: Vector2i, color: int) -> Dictionary:
 ## 发射：球吸附到 cell 后的完整结算。
 ## 宽限一发: 触线的球先留着；之后再发射时，逾期的最低行先掉出腾位置，
 ## 新球不陪葬，掉行后失去支撑的悬空球跟着掉。
-func attach_ball(cell: Vector2i, color := -1) -> Dictionary:
+func attach_ball(cell: Vector2i, color := -1, bounces := 0) -> Dictionary:
 	var ball_color := current_color if color < 0 else color
 	var overflow: Array[Vector2i] = []
 	if board.lowest_occupied_row() >= deadline_row:
@@ -70,7 +75,26 @@ func attach_ball(cell: Vector2i, color := -1) -> Dictionary:
 		overflow.append_array(_drop_floating())
 	board.set_ball(cell, ball_color)
 	var res: Dictionary = board.resolve_at(cell)
+	res["cell"] = cell
 	_score_result(res)
+
+	# 反弹奖励：不改变落球规则，只给技巧发糖。
+	if bounces > 0:
+		var bank_gain := bounces * 10
+		scorer.score += bank_gain
+		scorer.add_star(bounces * 8)
+		res["bank"] = bounces
+		res["bank_gain"] = bank_gain
+		res["gain"] = int(res.get("gain", 0)) + bank_gain
+		_notify_wish("bank", {"bounces": bounces})
+
+	# 掉行不是惩罚，是星尘。
+	if not overflow.is_empty():
+		var overflow_star := 15 + overflow.size() * 4
+		scorer.add_star(overflow_star)
+		res["overflow_star"] = overflow_star
+		_notify_wish("drop_row", {"count": overflow.size()})
+
 	_after_board_change(res, false)
 	res["overflow"] = overflow
 	current_color = next_color
@@ -103,6 +127,25 @@ func _score_result(res: Dictionary) -> void:
 		res["gain"] = 0
 	else:
 		res["gain"] = scorer.register_clear(res["popped"].size(), res["dropped"].size())
+		_notify_clear(res)
+
+
+func _notify_clear(res: Dictionary) -> void:
+	_notify_wish("clear", {
+		"count": res["popped"].size(),
+		"colors": res.get("color_counts", {}),
+		"combo": scorer.combo,
+	})
+
+
+func _notify_wish(event: String, data: Dictionary) -> void:
+	if wishes == null:
+		return
+	var done: Dictionary = wishes.notify(event, data)
+	if done.is_empty():
+		return
+	# 愿望奖励是特殊糖：Fever 期间也能攒，避免奖励被吞。
+	scorer.add_star(int(done.get("reward", 0)), true)
 
 
 ## 掉行后失去与顶行连接的球（物理一致性）

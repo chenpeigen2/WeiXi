@@ -115,7 +115,7 @@ func line_through(cell: Vector2i, dir: Vector2i) -> Array[Vector2i]:
 ## 并结算悬空掉落；否则自动换回。
 ## 返回 {"matched": bool, "popped": Array[Vector2i], "dropped": Array[Vector2i]}
 func swap(a: Vector2i, b: Vector2i) -> Dictionary:
-	var result: Dictionary = {"matched": false, "popped": [], "dropped": []}
+	var result: Dictionary = {"matched": false, "popped": [], "dropped": [], "color_counts": {}}
 	if not has_ball(a) or not has_ball(b):
 		return result
 	if not HexGrid.neighbors(a).has(b):
@@ -136,6 +136,11 @@ func swap(a: Vector2i, b: Vector2i) -> Dictionary:
 		cells[b] = tmp
 		return result
 	result["matched"] = true
+	var counts := {}
+	for c in matched.keys():
+		var col: int = cells[c]
+		counts[col] = counts.get(col, 0) + 1
+	result["color_counts"] = counts
 	var popped: Array[Vector2i] = []
 	for c in matched.keys():
 		remove_ball(c)
@@ -172,9 +177,11 @@ func floating() -> Array[Vector2i]:
 ## 新球吸附到 cell 后结算：相连同色 >=3 消除，失去支撑的悬空球掉落。
 ## 返回 {"popped": Array[Vector2i], "dropped": Array[Vector2i]}
 func resolve_at(cell: Vector2i) -> Dictionary:
-	var result: Dictionary = {"popped": [], "dropped": []}
+	var result: Dictionary = {"popped": [], "dropped": [], "color_counts": {}}
 	var cl := cluster(cell)
 	if cl.size() >= 3:
+		var col: int = cells[cell]
+		result["color_counts"] = {col: cl.size()}
 		for c in cl:
 			remove_ball(c)
 		result["popped"] = cl

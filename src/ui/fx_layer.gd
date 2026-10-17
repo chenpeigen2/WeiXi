@@ -22,28 +22,36 @@ func spawn_drop(pos: Vector2, r: float, color: Color) -> void:
 	queue_redraw()
 
 
-## 消除后的 +分浮字：上浮淡出，给玩家“这一发有回报”的即时反馈。
-func spawn_score_text(pos: Vector2, amount: int, color: Color = Color(1.0, 0.78, 0.30)) -> void:
-	if amount <= 0:
+## 通用浮字：+分 / BANK / 星尘 / 愿望达成 都复用它。
+func spawn_text(pos: Vector2, text: String, size := 24, color := Color(1.0, 0.60, 0.74), font: Font = null) -> void:
+	if text.is_empty():
 		return
 	var label := Label.new()
-	label.text = "+%d" % amount
+	label.text = text
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.size = Vector2(120, 30)
-	label.position = pos - Vector2(60, 18)
-	label.add_theme_font_override("font", NumericFont)
-	label.add_theme_font_size_override("font_size", 24)
+	label.size = Vector2(300, 36)
+	label.position = pos - Vector2(150, 20)
+	if font != null:
+		label.add_theme_font_override("font", font)
+	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", color)
-	label.add_theme_color_override("font_outline_color", Color(0.05, 0.06, 0.11, 0.9))
+	label.add_theme_color_override("font_outline_color", Color(0.12, 0.06, 0.10, 0.9))
 	label.add_theme_constant_override("outline_size", 4)
 	add_child(label)
 
 	var tw := create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(label, "position:y", label.position.y - 44.0, 0.65).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tw.tween_property(label, "modulate:a", 0.0, 0.65).set_ease(Tween.EASE_IN)
+	tw.tween_property(label, "position:y", label.position.y - 48.0, 0.8).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(label, "modulate:a", 0.0, 0.8).set_ease(Tween.EASE_IN)
 	tw.chain().tween_callback(label.queue_free)
+
+
+## 消除后的 +分浮字：上浮淡出，给玩家“这一发有回报”的即时反馈。
+func spawn_score_text(pos: Vector2, amount: int, color := Color(1.0, 0.60, 0.74)) -> void:
+	if amount <= 0:
+		return
+	spawn_text(pos, "+%d" % amount, 24, color, NumericFont)
 
 
 func effect_count() -> int:

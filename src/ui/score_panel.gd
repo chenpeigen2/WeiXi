@@ -14,6 +14,7 @@ var _panel: StyleBoxFlat
 var _pill: StyleBoxFlat
 var _pill_rect := Rect2(Ui.COMBO_PILL_X, Ui.COMBO_PILL_Y, Ui.COMBO_PILL_W, Ui.COMBO_PILL_H)
 var _last_combo := 1
+var _last_fever := 0
 
 
 func _ready() -> void:
@@ -61,7 +62,7 @@ func _ready() -> void:
 	add_child(_combo_label)
 
 
-func set_score(score: int, combo: int) -> void:
+func set_score(score: int, combo: int, fever := 0) -> void:
 	var value := format_score(score)
 	text = "分数 %s" % value
 	if _value_label != null:
@@ -73,11 +74,12 @@ func set_score(score: int, combo: int) -> void:
 			fs = 28
 		_value_label.add_theme_font_size_override("font_size", fs)
 	if _combo_label != null:
-		var active := combo > 1
-		_combo_label.text = "连击 ×%d" % combo
+		var fever_on := fever > 0
+		var active := combo > 1 or fever_on
+		_combo_label.text = "FEVER ×2" if fever_on else "连击 ×%d" % combo
 		_combo_label.add_theme_color_override(
 			"font_color",
-			Color(0.12, 0.10, 0.05) if active else Ui.COMBO_IDLE_TEXT
+			Color(0.16, 0.06, 0.10) if active else Ui.COMBO_IDLE_TEXT
 		)
 		_pill.bg_color = Ui.ACCENT if active else Ui.COMBO_IDLE_BG
 		var min_w: float = _combo_label.get_minimum_size().x + 30.0
@@ -85,9 +87,10 @@ func set_score(score: int, combo: int) -> void:
 		var w: float = clampf(maxf(Ui.COMBO_PILL_W, min_w), Ui.COMBO_PILL_W, max_w)
 		_pill_rect = Rect2(Ui.COMBO_PILL_X, Ui.COMBO_PILL_Y, w, Ui.COMBO_PILL_H)
 		_combo_label.size = Vector2(w - 30.0, Ui.COMBO_PILL_H)
-		if combo > _last_combo:
+		if combo > _last_combo or fever > _last_fever:
 			_pop_combo()
 		_last_combo = combo
+		_last_fever = fever
 	queue_redraw()
 
 

@@ -33,6 +33,7 @@ var hint_label: Label
 
 var _press := {} # {pos,dragging}
 var _coach_step := 0
+var _last_wish_completion := 0
 
 
 func _ready() -> void:
@@ -88,7 +89,14 @@ func refresh() -> void:
 	deadline_view.queue_redraw()
 	shooter.queue_redraw()
 	picker.set_current(game.current_color)
-	score_panel.set_score(game.scorer.score, game.scorer.combo)
+	score_panel.set_score(game.scorer.score, game.scorer.combo, game.scorer.fever_charges)
+
+	if game.wishes.completion_count != _last_wish_completion:
+		_last_wish_completion = game.wishes.completion_count
+		fx_layer.spawn_text(
+			Vector2(Ui.SCREEN_W * 0.5, 560.0),
+			"愿望达成！+%d" % game.wishes.last_reward, 28, Ui.ACCENT
+		)
 
 	if color_popup.active:
 		hint_label.text = "给这颗球选个颜色"
@@ -96,9 +104,14 @@ func refresh() -> void:
 	elif _coach_step < 3:
 		hint_label.text = _coach_text()
 		hint_label.visible = true
-	else:
+	elif game.should_hint_match3():
 		hint_label.text = "点两个相邻球互换!"
-		hint_label.visible = game.should_hint_match3()
+		hint_label.visible = true
+	elif game.wishes.active != null:
+		hint_label.text = game.wishes.active.hud_text()
+		hint_label.visible = true
+	else:
+		hint_label.visible = false
 
 	_update_preview()
 
@@ -142,7 +155,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	# 提示闪烁
 	if hint_label.visible:
-		hint_label.modulate = Color.WHITE.lerp(Color(1, 0.6, 0.4), 0.5 + 0.5 * sin(Time.get_ticks_msec() / 200.0))
+		hint_label.modulate = Color.WHITE.lerp(Color(1.0, 0.86, 0.92), 0.5 + 0.5 * sin(Time.get_ticks_msec() / 200.0))
 
 
 ## 桌面 hover：可点元素显示手型光标，减少“这里能不能点”的猜测。
@@ -246,8 +259,9 @@ func _fire() -> void:
 	selected = INVALID_CELL
 	var before: Dictionary = game.board.cells.duplicate()
 	var shot_color: int = game.current_color
+	var bounces: int = int(tr.get("bounces", 0))
 	shooter.start_flight(tr["path"], shot_color, func() -> void:
-		var res: Dictionary = game.attach_ball(cell, shot_color)
+		var res: Dictionary = game.attach_ball(cell, shot_color, bounces)
 		_spawn_effects(res, before)
 		refresh()
 	)
@@ -318,6 +332,22 @@ func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 			center += BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
 		center /= float(res["popped"].size())
 		fx_layer.spawn_score_text(center, gain)
+		if res["popped"].size() >= 6:
+			fx_layer.spawn_text(center - Vector2(0, 54), "好厉害！", 26, Ui.ACCENT)
+
+	# 反弹 / 掉行的可见回调；分数已经算进 res["gain"] / scorer。
+	var bank_gain: int = int(res.get("bank_gain", 0))
+	if bank_gain > 0:
+		var bank_cell: Vector2i = res.get("cell", INVALID_CELL)
+		if bank_cell != INVALID_CELL:
+			var at := BoardCamera.to_screen(game.layout.cell_to_pixel(bank_cell), 1.0, o)
+			fx_layer.spawn_text(at - Vector2(0, 52), "BANK!", 26, Ui.ACCENT)
+	var overflow_star: int = int(res.get("overflow_star", 0))
+	if overflow_star > 0:
+		fx_layer.spawn_text(
+			Vector2(Ui.SCREEN_W * 0.5, 952.0),
+			"星尘 +%d" % overflow_star, 20, Ui.ACCENT
+		)
 
 
 func _spawn_drop_effects(cells: Array, before: Dictionary) -> void:
@@ -340,7 +370,7 @@ func _trace_screen() -> Dictionary:
 	if trace["cell"] != INVALID_CELL:
 		target = BoardCamera.to_screen(game.layout.cell_to_pixel(trace["cell"]), 1.0, o)
 		pts.append(target)
-	return {"cell": trace["cell"], "path": pts, "target": target}
+	return {"cell": trace["cell"], "path": pts, "target": target, "bounces": trace.get("bounces", 0)}
 
 
 func _update_preview() -> void:

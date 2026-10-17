@@ -157,3 +157,40 @@ func test_attach_ball_uses_explicit_color_and_rotates_queue() -> void:
 	assert_eq(g.board.get_color(Vector2i(0, 1)), 4, "使用发射时捕获的颜色")
 	assert_eq(g.current_color, old_next, "当前球轮转")
 	assert_eq(res["popped"].size(), 0, "无消除")
+
+
+func test_attach_ball_bank_bonus_and_wish_event() -> void:
+	var g := Game.new(1)
+	g.board = Board.new(10, 12)
+	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
+	g.set_current_color(1)
+	var res: Dictionary = g.attach_ball(Vector2i(0, 1), 1, 2)
+	assert_eq(res["bank"], 2, "记录反弹次数")
+	assert_eq(res["bank_gain"], 20, "每次反弹 +10")
+	assert_eq(g.board.get_color(Vector2i(0, 1)), 1, "正常落球")
+
+
+func test_overflow_drop_gives_star_dust() -> void:
+	var g := Game.new(1)
+	g.board = Board.new(10, Game.MAX_ROWS)
+	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
+	g.board.set_ball(Vector2i(0, 13), 1) # 触线
+	g.set_current_color(2)
+	var before: int = g.scorer.star
+	var res: Dictionary = g.attach_ball(Vector2i(5, 13))
+	assert_true(res["overflow"].size() > 0, "掉行发生")
+	assert_true(int(res["overflow_star"]) > 0, "掉行给星尘")
+	assert_true(g.scorer.star > before or g.scorer.fever_charges > 0, "星星增加或进入 Fever")
+
+
+func test_clear_notifies_wish_progress() -> void:
+	var g := Game.new(1)
+	g.board = Board.new(10, 12)
+	g.board.set_ball(Vector2i(5, 0), 3) # 锚点
+	g.board.set_ball(Vector2i(0, 0), 1)
+	g.board.set_ball(Vector2i(1, 0), 1)
+	g.set_current_color(1)
+	var before: int = g.wishes.completion_count
+	g.attach_ball(Vector2i(0, 1))
+	assert_true(g.wishes.completion_count >= before, "愿望系统参与结算")
+	assert_true(g.wishes.active != null, "始终有一条愿望")

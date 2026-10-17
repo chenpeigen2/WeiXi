@@ -35,3 +35,4 @@ func test_trace_wall_bounce_has_turning_point() -> void:
 	# 反弹后横坐标仍被夹在墙边 [R, R+步进] ≈ [10, 11.2]
 	assert_true(min_x < R + 2.0, "先贴到左墙, min_x=%f" % min_x)
 	assert_true(pts[pts.size() - 1].x > min_x + 5.0, "反弹后向右")
+	assert_true(int(res["bounces"]) >= 1, "记录反弹次数")
