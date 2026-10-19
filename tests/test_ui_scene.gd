@@ -180,3 +180,12 @@ func test_board_shake_returns_to_rest() -> void:
 	assert_true(node.board_view._shake.is_empty(), "震屏结束")
 	assert_eq(node.board_view.position, Vector2.ZERO, "回到原位")
 	node.free()
+
+
+func test_sticker_chip_pulse_on_unlock() -> void:
+	var node := _instantiate_main()
+	node.meta_bar.set_state(false, 2)
+	assert_true(node.meta_bar._sticker_pulse > 0.0, "贴纸数量增加时入口发光")
+	node.meta_bar._process(0.60)
+	assert_true(node.meta_bar._sticker_pulse <= 0.0, "脉冲结束")
+	node.free()

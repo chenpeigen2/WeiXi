@@ -20,6 +20,9 @@ var _active: StyleBoxFlat
 var _sticker_bg: StyleBoxFlat
 var _hover_glow: StyleBoxFlat
 var _hover := -1
+var _last_count := 0
+var _sticker_pulse := 0.0
+var _pulse_glow: StyleBoxFlat
 
 
 func _ready() -> void:
@@ -35,6 +38,12 @@ func _ready() -> void:
 	_hover_glow.set_border_width_all(2)
 	_hover_glow.set_corner_radius_all(18)
 
+	_pulse_glow = StyleBoxFlat.new()
+	_pulse_glow.bg_color = Color(0, 0, 0, 0)
+	_pulse_glow.border_color = Color(1.0, 0.62, 0.76, 0.55)
+	_pulse_glow.set_border_width_all(2)
+	_pulse_glow.set_corner_radius_all(18)
+
 
 func _box(bg: Color, border: Color) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
@@ -48,7 +57,16 @@ func _box(bg: Color, border: Color) -> StyleBoxFlat:
 func set_state(is_daily: bool, count: int) -> void:
 	daily = is_daily
 	sticker_count = count
+	if count > _last_count:
+		_sticker_pulse = 0.55
+	_last_count = count
 	queue_redraw()
+
+
+func _process(delta: float) -> void:
+	if _sticker_pulse > 0.0:
+		_sticker_pulse = maxf(0.0, _sticker_pulse - delta)
+		queue_redraw()
 
 
 func _draw() -> void:
@@ -56,6 +74,10 @@ func _draw() -> void:
 	_draw_chip(RANDOM_RECT, "随机", not daily, _hover == 1)
 	if _hover == 2:
 		draw_style_box(_hover_glow, STICKER_RECT.grow(2.0))
+	if _sticker_pulse > 0.0:
+		var pk: float = _sticker_pulse / 0.55
+		_pulse_glow.border_color = Color(1.0, 0.62, 0.76, 0.55 * pk)
+		draw_style_box(_pulse_glow, STICKER_RECT.grow(2.0 + 3.0 * (1.0 - pk)))
 	draw_style_box(_sticker_bg, STICKER_RECT)
 	_heart(Vector2(STICKER_RECT.position.x + 14, STICKER_RECT.position.y + 16), 4.2, Ui.ROSE, 0.9)
 	var text := "贴纸册 %d/%d" % [sticker_count, 12]
@@ -66,6 +88,12 @@ func _draw() -> void:
 	# 小星星标记
 	var star := STICKER_RECT.position + Vector2(STICKER_RECT.size.x - 20, 16)
 	_star(star, 5.0, Ui.ROSE)
+	if _sticker_pulse > 0.0:
+		var pk: float = _sticker_pulse / 0.55
+		for i in range(4):
+			var ang: float = TAU * float(i) / 4.0 + (1.0 - pk) * 2.0
+			var sp: Vector2 = star + Vector2(cos(ang), sin(ang)) * (12.0 + 10.0 * (1.0 - pk))
+			_star(sp, 3.4 * pk, Color(1.0, 0.76, 0.86, 0.85 * pk))
 
 
 func _draw_chip(rect: Rect2, text: String, active: bool, hover: bool) -> void:

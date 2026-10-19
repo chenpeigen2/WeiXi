@@ -43,6 +43,7 @@ var _last_hint := ""
 var _press := {} # {pos,dragging}
 var _coach_step := 0
 var _last_wish_completion := 0
+var _last_fever_charges := 0
 
 
 func _ready() -> void:
@@ -112,6 +113,9 @@ func refresh() -> void:
 	shooter.queue_redraw()
 	picker.set_current(game.current_color)
 	score_panel.set_score(game.scorer.score, game.scorer.combo, game.scorer.fever_charges)
+	if game.scorer.fever_charges > 0 and _last_fever_charges <= 0:
+		_celebrate_fever()
+	_last_fever_charges = game.scorer.fever_charges
 
 	if game.wishes.completion_count != _last_wish_completion:
 		var gained: int = game.wishes.completion_count - _last_wish_completion
@@ -121,16 +125,13 @@ func refresh() -> void:
 			if sticker_book.unlock_next() >= 0:
 				stickers += 1
 		meta_bar.set_state(daily_mode, sticker_book.count())
+		var wish_pos := Vector2(Ui.SCREEN_W * 0.5, 560.0)
 		if stickers > 0:
-			fx_layer.spawn_text(
-				Vector2(Ui.SCREEN_W * 0.5, 560.0),
-				"愿望达成！贴纸 +%d" % stickers, 28, Ui.ACCENT
-			)
+			fx_layer.spawn_text(wish_pos, "愿望达成！贴纸 +%d" % stickers, 28, Ui.ACCENT)
 		else:
-			fx_layer.spawn_text(
-				Vector2(Ui.SCREEN_W * 0.5, 560.0),
-				"愿望达成！+%d" % game.wishes.last_reward, 28, Ui.ACCENT
-			)
+			fx_layer.spawn_text(wish_pos, "愿望达成！+%d" % game.wishes.last_reward, 28, Ui.ACCENT)
+		fx_layer.spawn_burst(wish_pos, Ui.HEART, 12, 0.75, 0.85)
+		fx_layer.spawn_burst(wish_pos, Ui.LEMON, 5, 0.55, 0.35)
 		if album.visible:
 			album.queue_redraw()
 
@@ -293,6 +294,7 @@ func _start_new_game(seed: int, is_daily: bool) -> void:
 	_press = {}
 	_coach_step = 3
 	_last_wish_completion = 0
+	_last_fever_charges = 0
 	color_popup.close()
 	picker.set_current(game.current_color)
 	shooter.aim_dir = Vector2.UP
@@ -464,11 +466,18 @@ func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 			board_view.play_shake(1.8 + minf(1.4, float(n - 5) * 0.35))
 
 	if res.get("star_burst", false):
-		fx_layer.spawn_text(Vector2(Ui.SCREEN_W * 0.5, 540.0), "星星泡泡！", 28, Ui.ACCENT)
+		var sb_pos := Vector2(Ui.SCREEN_W * 0.5, 540.0)
+		fx_layer.spawn_text(sb_pos, "星星泡泡！", 28, Ui.ACCENT)
+		fx_layer.spawn_burst(sb_pos, Ui.LEMON, 10, 0.8, 0.35)
+		fx_layer.spawn_burst(sb_pos, Ui.ROSE, 5, 0.6, 0.6)
 	elif res.get("rainbow", false):
-		fx_layer.spawn_text(Vector2(Ui.SCREEN_W * 0.5, 540.0), "彩虹洗色！", 28, Ui.ACCENT)
+		var rb_pos := Vector2(Ui.SCREEN_W * 0.5, 540.0)
+		fx_layer.spawn_text(rb_pos, "彩虹洗色！", 28, Ui.ACCENT)
+		for col in [Ui.ROSE, Ui.LEMON, Ui.MINT, Ui.LAVENDER]:
+			fx_layer.spawn_burst(rb_pos, col, 6, 0.9, 0.4)
 	elif res.get("star_armed", false):
 		fx_layer.spawn_text(Vector2(Ui.SCREEN_W * 0.5, 600.0), "星星球准备！", 24, Ui.ACCENT)
+		fx_layer.spawn_burst(Ui.SHOOTER_POS, Ui.LEMON, 8, 0.6, 0.5)
 
 	# 反弹 / 掉行的可见回调；分数已经算进 res["gain"] / scorer。
 	var bank_gain: int = int(res.get("bank_gain", 0))
@@ -477,12 +486,21 @@ func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 		if bank_cell != INVALID_CELL:
 			var at := BoardCamera.to_screen(game.layout.cell_to_pixel(bank_cell), 1.0, o)
 			fx_layer.spawn_text(at - Vector2(0, 52), "BANK!", 26, Ui.ACCENT)
+			fx_layer.spawn_burst(at, Ui.LEMON, 5, 0.55, 0.5)
 	var overflow_star: int = int(res.get("overflow_star", 0))
 	if overflow_star > 0:
 		fx_layer.spawn_text(
 			Vector2(Ui.SCREEN_W * 0.5, 952.0),
 			"星尘 +%d" % overflow_star, 20, Ui.ACCENT
 		)
+
+
+func _celebrate_fever() -> void:
+	var center := Vector2(Ui.SCREEN_W * 0.5, 470.0)
+	fx_layer.spawn_text(center, "FEVER!", 44, Ui.ACCENT)
+	for col in [Ui.ROSE, Ui.LEMON, Ui.MINT, Ui.LAVENDER]:
+		fx_layer.spawn_burst(center, col, 7, 0.95, 0.45)
+	board_view.play_shake(2.0)
 
 
 func _spawn_drop_effects(cells: Array, colors: Dictionary, before: Dictionary) -> void:
