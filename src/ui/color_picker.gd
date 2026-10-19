@@ -8,6 +8,8 @@ const UiFont = preload("res://fonts/ZCOOLKuaiLe-Regular.ttf")
 var current := 0
 var hover := -1
 
+const COLOR_NAMES := ["草莓", "柠檬", "天空", "薄荷", "薰衣草", "蜜桃"]
+
 var _panel: StyleBoxFlat
 var _t := 0.0
 
@@ -69,9 +71,11 @@ func _draw() -> void:
 
 	# “换色”标题：让这条 6 色球不再像装饰。
 	_heart(Vector2(pos_of(0).x - 30.0, Ui.PICKER_CENTER.y - 65.0), 4.0, Ui.ROSE, 0.9)
+	var title := "换色" if hover < 0 else "换色 · %s" % COLOR_NAMES[hover]
 	draw_string(
 		UiFont, Vector2(pos_of(0).x - 14.0, Ui.PICKER_CENTER.y - 62.0),
-		"换色", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Ui.TEXT_DIM
+		title, HORIZONTAL_ALIGNMENT_LEFT, -1, 13,
+		Ui.TEXT_DIM if hover < 0 else Ui.ACCENT
 	)
 
 	for i in range(Ui.BALL_COLORS.size()):

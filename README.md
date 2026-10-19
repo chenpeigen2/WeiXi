@@ -18,6 +18,7 @@
 - **每日挑战**：日期哈希固定种子，同一天同一盘
 - **贴纸册**：12 张矢量贴纸，本地持久化
 - **马卡龙 UI**：薄荷/薰衣草/奶油/玫瑰/柠檬，全部矢量绘制
+- **奖励时刻动效**：Fever 开启、愿望达成、贴纸收集、星星/彩虹/BANK 都有专属庆祝
 - **落球反馈**：挤压回弹 + 接触涟漪 + 奶油尘 + 小爱心
 
 ## 操作
@@ -52,7 +53,7 @@ macOS 上如果编辑器启动遇到 MoltenVK 问题，使用：
 
 ## 测试
 
-项目使用自建无依赖测试脚本，当前 **120 个测试全绿**：
+项目使用自建无依赖测试脚本，当前 **128 个测试全绿**：
 
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . \
@@ -68,7 +69,7 @@ src/
   logic/      纯 GDScript 玩法逻辑（棋盘、计分、愿望、贴纸、每日种子）
   scenes/     主场景与编排层
   ui/         全部矢量 UI（HUD、背板、球、发射器、贴纸册、特效）
-tests/        120 个测试
+tests/        128 个测试
 fonts/        ZCOOL KuaiLe + Fredoka（SIL OFL 1.1）
 docs/         4K / 8K 截图
 tools/        图标、Web 注入、deb/NSIS 打包脚本

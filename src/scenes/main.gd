@@ -200,6 +200,16 @@ func _process(_delta: float) -> void:
 		_last_hint = ""
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_MOUSE_EXIT:
+		if board_view != null:
+			board_view.set_hover(INVALID_CELL)
+		if picker != null:
+			picker.set_hover(Vector2(-9999, -9999))
+		if color_popup != null:
+			color_popup.set_hover(Vector2(-9999, -9999))
+
+
 func _pop_hint() -> void:
 	hint_label.pivot_offset = hint_label.size * 0.5
 	hint_label.scale = Vector2(1.06, 1.06)
@@ -306,6 +316,11 @@ func _start_new_game(seed: int, is_daily: bool) -> void:
 	board_view.hidden_cells = {}
 	fx_layer.clear()
 	meta_bar.set_state(daily_mode, sticker_book.count())
+	if is_daily:
+		var intro := Vector2(Ui.SCREEN_W * 0.5, 500.0)
+		fx_layer.spawn_text(intro, "每日挑战 · 今日限定", 28, Ui.ACCENT)
+		fx_layer.spawn_burst(intro, Ui.LAVENDER, 8, 0.65, 0.5)
+		fx_layer.spawn_burst(intro, Ui.HEART, 4, 0.45, 1.0)
 	refresh()
 
 
