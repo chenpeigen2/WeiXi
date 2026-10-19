@@ -18,6 +18,8 @@ var sticker_count := 0
 var _idle: StyleBoxFlat
 var _active: StyleBoxFlat
 var _sticker_bg: StyleBoxFlat
+var _hover_glow: StyleBoxFlat
+var _hover := -1
 
 
 func _ready() -> void:
@@ -27,6 +29,11 @@ func _ready() -> void:
 	_idle = _box(Ui.PANEL, Ui.MINT)
 	_active = _box(Ui.ACCENT, Ui.ROSE)
 	_sticker_bg = _box(Ui.PANEL, Ui.LAVENDER)
+	_hover_glow = StyleBoxFlat.new()
+	_hover_glow.bg_color = Color(0, 0, 0, 0)
+	_hover_glow.border_color = Color(1.0, 0.68, 0.80, 0.55)
+	_hover_glow.set_border_width_all(2)
+	_hover_glow.set_corner_radius_all(18)
 
 
 func _box(bg: Color, border: Color) -> StyleBoxFlat:
@@ -45,8 +52,10 @@ func set_state(is_daily: bool, count: int) -> void:
 
 
 func _draw() -> void:
-	_draw_chip(DAILY_RECT, "每日挑战", daily)
-	_draw_chip(RANDOM_RECT, "随机", not daily)
+	_draw_chip(DAILY_RECT, "每日挑战", daily, _hover == 0)
+	_draw_chip(RANDOM_RECT, "随机", not daily, _hover == 1)
+	if _hover == 2:
+		draw_style_box(_hover_glow, STICKER_RECT.grow(2.0))
 	draw_style_box(_sticker_bg, STICKER_RECT)
 	_heart(Vector2(STICKER_RECT.position.x + 14, STICKER_RECT.position.y + 16), 4.2, Ui.ROSE, 0.9)
 	var text := "贴纸册 %d/%d" % [sticker_count, 12]
@@ -59,7 +68,9 @@ func _draw() -> void:
 	_star(star, 5.0, Ui.ROSE)
 
 
-func _draw_chip(rect: Rect2, text: String, active: bool) -> void:
+func _draw_chip(rect: Rect2, text: String, active: bool, hover: bool) -> void:
+	if hover and not active:
+		draw_style_box(_hover_glow, rect.grow(2.0))
 	draw_style_box(_active if active else _idle, rect)
 	var color := Color(0.30, 0.10, 0.18) if active else Ui.TEXT_DIM
 	_heart(Vector2(rect.position.x + 13.0, rect.position.y + 16.0), 4.0,
@@ -78,7 +89,27 @@ func _star(p: Vector2, s: float, c: Color) -> void:
 	]), c)
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_MOUSE_EXIT:
+		if _hover != -1:
+			_hover = -1
+			queue_redraw()
+
+
 func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		var h := -1
+		var p: Vector2 = event.position
+		if DAILY_RECT.has_point(p):
+			h = 0
+		elif RANDOM_RECT.has_point(p):
+			h = 1
+		elif STICKER_RECT.has_point(p):
+			h = 2
+		if h != _hover:
+			_hover = h
+			queue_redraw()
+		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var p: Vector2 = event.position
 		if DAILY_RECT.has_point(p):

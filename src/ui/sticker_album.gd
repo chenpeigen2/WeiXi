@@ -32,6 +32,13 @@ func _ready() -> void:
 func open(book: RefCounted) -> void:
 	_book = book
 	visible = true
+	modulate = Color(1, 1, 1, 0)
+	pivot_offset = Vector2(Ui.SCREEN_W * 0.5, Ui.SCREEN_H * 0.5)
+	scale = Vector2(0.94, 0.94)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(self, "modulate:a", 1.0, 0.18)
+	tw.tween_property(self, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	queue_redraw()
 
 

@@ -9,6 +9,7 @@ var current := 0
 var hover := -1
 
 var _panel: StyleBoxFlat
+var _t := 0.0
 
 
 static func pos_of(i: int) -> Vector2:
@@ -31,6 +32,11 @@ func _ready() -> void:
 	_panel.shadow_color = Color(0.12, 0.05, 0.09, 0.28)
 	_panel.shadow_size = 14
 	_panel.shadow_offset = Vector2(0, 6)
+
+
+func _process(delta: float) -> void:
+	_t += delta
+	queue_redraw()
 
 
 func set_current(c: int) -> void:
@@ -72,12 +78,12 @@ func _draw() -> void:
 		var p := pos_of(i)
 		var r := Ui.PICKER_R
 		if i == current:
-			r *= 1.15
+			r *= 1.12 + 0.025 * sin(_t * 5.0)
 		elif i == hover:
-			r *= 1.08
+			r *= 1.06 + 0.02 * sin(_t * 6.0)
 		if i == current:
 			var halo := Ui.ACCENT
-			halo.a = 0.05
+			halo.a = 0.05 + 0.02 * (0.5 + 0.5 * sin(_t * 5.0))
 			draw_circle(p, r + 16.0, halo)
 			halo.a = 0.10
 			draw_circle(p, r + 10.0, halo)
@@ -88,6 +94,7 @@ func _draw() -> void:
 			draw_arc(p, r + 5.0, 0, TAU, 36, Ui.HEART, 2.0, true)
 		if i == current:
 			draw_arc(p, r + 7.0, 0, TAU, 40, Ui.ACCENT, 4.0, true)
+			_heart(p + Vector2(0, -r - 13.0 + 2.0 * sin(_t * 4.0)), 3.6, Ui.HEART, 0.85)
 
 
 ## 小爱心：奶油条上的糖霜。

@@ -230,12 +230,16 @@ func _draw_landing(l: Dictionary) -> void:
 	BallDraw.draw_ball(self, Vector2.ZERO, r * 0.95, color, 1.0, false)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
-	# 两颗小爱心从接触点冒出来
+	# 两颗小爱心 + 两颗小星星从接触点冒出来
 	for i in range(2):
 		var side := -1.0 if i == 0 else 1.0
 		_heart(
 			pos + Vector2(side * r * 0.45, r * 0.62 - 24.0 * t),
 			4.0, Ui.ROSE, 0.65 * fade
+		)
+		_star(
+			pos + Vector2(side * r * 0.82, -r * 0.15 - 26.0 * t),
+			3.4 * (0.7 + 0.3 * fade), Color(1.0, 0.90, 0.66, 0.72 * fade)
 		)
 
 

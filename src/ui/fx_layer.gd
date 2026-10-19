@@ -306,6 +306,18 @@ func _process(delta: float) -> void:
 				e["vel"].y += DROP_GRAVITY * delta
 				e["pos"] += e["vel"] * delta
 			keep.append(e)
+		elif e["kind"] == "drop":
+			# 掉落结束：一小团奶油尘，避免球凭空消失
+			for i in range(3):
+				_sparks.append({
+					"pos": e["pos"],
+					"vel": Vector2(randf_range(-45.0, 45.0), randf_range(-55.0, -18.0)),
+					"t": 0.0,
+					"life": randf_range(0.22, 0.38),
+					"color": Color(1.0, 0.93, 0.88),
+					"size": randf_range(2.0, 3.4),
+					"kind": "dot",
+				})
 	_effects = keep
 	queue_redraw()
 
@@ -356,6 +368,11 @@ func _draw() -> void:
 			c.a = 0.45 * (1.0 - k)
 			draw_circle(e["pos"], e["r"] * (1.0 - k) * 0.9, c)
 		else:
+			for j in [1, 2]:
+				var tp: Vector2 = e["pos"] - e["vel"] * 0.020 * float(j)
+				var tc: Color = e["color"]
+				tc.a = 0.12 / float(j)
+				draw_circle(tp, e["r"] * (0.82 - 0.06 * float(j)), tc)
 			BallDraw.draw_ball(self, e["pos"], e["r"] * 0.95, e["color"], 1.0 - k * k)
 	for sp in _sparks:
 		var sk: float = sp["t"] / sp["life"]

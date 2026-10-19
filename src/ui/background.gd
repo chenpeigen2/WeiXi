@@ -105,11 +105,16 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	for c in _clouds:
-		_cloud(Vector2(c["x"], c["y"]), c["s"], c["a"])
+	var t := Time.get_ticks_msec() / 1000.0
+	for i in range(_clouds.size()):
+		var c: Dictionary = _clouds[i]
+		var cp := Vector2(
+			float(c["x"]) + sin(t * 0.18 + float(i) * 1.7) * 6.0,
+			float(c["y"]) + sin(t * 0.12 + float(i)) * 2.0
+		)
+		_cloud(cp, c["s"], c["a"])
 	for b in _bubbles:
 		draw_circle(Vector2(b["x"], b["y"]), b["r"], Color(1.0, 0.88, 0.90, b["a"]))
-	var t := Time.get_ticks_msec() / 1000.0
 	for st in _stars:
 		var a: float = 0.18 + 0.14 * (0.5 + 0.5 * sin(t * st["speed"] + st["phase"]))
 		_star(Vector2(st["x"], st["y"]), st["s"], Color(Ui.STAR.r, Ui.STAR.g, Ui.STAR.b, a))

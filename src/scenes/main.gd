@@ -38,6 +38,7 @@ var meta_bar: Control
 var album: Control
 var sticker_book: RefCounted
 var daily_mode := false
+var _last_hint := ""
 
 var _press := {} # {pos,dragging}
 var _coach_step := 0
@@ -188,9 +189,21 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
-	# 提示闪烁
+	# 提示闪烁 + 内容变化时轻弹一下
 	if hint_label.visible:
 		hint_label.modulate = Color.WHITE.lerp(Color(1.0, 0.86, 0.92), 0.5 + 0.5 * sin(Time.get_ticks_msec() / 200.0))
+		if hint_label.text != _last_hint:
+			_last_hint = hint_label.text
+			_pop_hint()
+	else:
+		_last_hint = ""
+
+
+func _pop_hint() -> void:
+	hint_label.pivot_offset = hint_label.size * 0.5
+	hint_label.scale = Vector2(1.06, 1.06)
+	var tw := create_tween()
+	tw.tween_property(hint_label, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 ## 桌面 hover：可点元素显示手型光标，减少“这里能不能点”的猜测。
@@ -344,6 +357,7 @@ func _fire() -> void:
 	var before: Dictionary = game.board.cells.duplicate()
 	var shot_color: int = game.current_color
 	var bounces: int = int(tr.get("bounces", 0))
+	fx_layer.spawn_burst(Ui.SHOOTER_POS, Ui.BALL_COLORS[shot_color], 5, 0.55, 0.45)
 	shooter.start_flight(tr["path"], shot_color, func() -> void:
 		var res: Dictionary = game.attach_ball(cell, shot_color, bounces)
 		if game.board.has_ball(cell):

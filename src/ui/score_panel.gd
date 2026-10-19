@@ -15,6 +15,7 @@ var _pill: StyleBoxFlat
 var _pill_rect := Rect2(Ui.COMBO_PILL_X, Ui.COMBO_PILL_Y, Ui.COMBO_PILL_W, Ui.COMBO_PILL_H)
 var _last_combo := 1
 var _last_fever := 0
+var _last_score := -1
 
 
 func _ready() -> void:
@@ -73,6 +74,9 @@ func set_score(score: int, combo: int, fever := 0) -> void:
 		elif value.length() > 6:
 			fs = 28
 		_value_label.add_theme_font_size_override("font_size", fs)
+		if _last_score >= 0 and score > _last_score:
+			_pop_score()
+	_last_score = score
 	if _combo_label != null:
 		var fever_on := fever > 0
 		var active := combo > 1 or fever_on
@@ -92,6 +96,16 @@ func set_score(score: int, combo: int, fever := 0) -> void:
 		_last_combo = combo
 		_last_fever = fever
 	queue_redraw()
+
+
+## 分数增加时让数字轻轻弹一下，和消除特效呼应。
+func _pop_score() -> void:
+	if _value_label == null:
+		return
+	_value_label.pivot_offset = _value_label.size * 0.5
+	_value_label.scale = Vector2(1.10, 1.10)
+	var tw := create_tween()
+	tw.tween_property(_value_label, "scale", Vector2.ONE, 0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 ## 连击升高时让胶囊里的字弹一下，给“连上了”一个手感。
