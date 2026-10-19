@@ -68,18 +68,58 @@ func effect_count() -> int:
 
 # ---------- 三消互换动画 ----------
 
-## 互换两球在进度 k(0..1) 时的位置对。
-## revert=true 表示无效互换：前半程滑向对方，后半程滑回原位（回弹）。
+## 互换两球在进度 k(0..1) 时的基础位置。
+## 有效互换带一点 over-shoot（先冲过目标再回弹），无效互换来回摆动。
 static func swap_positions(a: Vector2, b: Vector2, k: float, revert: bool) -> Array[Vector2]:
 	var t: float
 	if revert:
-		t = k * 2.0 if k < 0.5 else (1.0 - k) * 2.0
+		t = sin(PI * k)
 	else:
-		t = k
-	# smoothstep 缓动
-	t = t * t * (3.0 - 2.0 * t)
+		var kk: float = k - 1.0
+		t = 1.0 + 2.70158 * kk * kk * kk + 1.70158 * kk * kk
 	return [a.lerp(b, t), b.lerp(a, t)]
 
+
+## 视觉层：交换时两球绕开彼此走一点弧线，并配合挤压回弹。
+static func swap_visuals(a: Vector2, b: Vector2, k: float, revert: bool, r: float) -> Dictionary:
+	var base: Array = swap_positions(a, b, k, revert)
+	var delta := b - a
+	if delta.length() < 0.001:
+		delta = Vector2.RIGHT
+	var dir := delta.normalized()
+	var perp := Vector2(-dir.y, dir.x)
+	var arc := 0.0
+	var scale := 1.0
+	if revert:
+		var wob: float = sin(3.0 * PI * k) * (1.0 - k)
+		arc = wob * r * 0.22
+		scale = 1.0 + 0.09 * wob
+	else:
+		var swell: float = sin(PI * k)
+		arc = swell * r * 0.85
+		scale = 1.0 + 0.16 * swell
+	return {
+		"a": base[0] + perp * arc,
+		"b": base[1] - perp * arc,
+		"scale": scale,
+	}
+
+
+func _draw_swap_ball(pos: Vector2, r: float, color: Color, scale: float, alpha: float) -> void:
+	if alpha <= 0.001:
+		return
+	draw_set_transform(pos, 0.0, Vector2(scale, scale))
+	BallDraw.draw_ball(self, Vector2.ZERO, r, color, alpha)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _sparkle(p: Vector2, s: float, c: Color) -> void:
+	var q: float = s * 0.24
+	draw_colored_polygon(PackedVector2Array([
+		p + Vector2(0, -s), p + Vector2(q, -q), p + Vector2(s, 0), p + Vector2(q, q),
+		p + Vector2(0, s), p + Vector2(-q, q), p + Vector2(-s, 0), p + Vector2(-q, -q),
+	]), c)
+	draw_circle(p, s * 0.16, Color(1, 1, 1, c.a * 0.8))
 
 func play_swap(a: Vector2, b: Vector2, color_a: Color, color_b: Color, r: float, revert: bool, dur: float, on_done: Callable) -> void:
 	_swap = {"a": a, "b": b, "color_a": color_a, "color_b": color_b, "r": r, "revert": revert, "dur": dur, "t": 0.0, "cb": on_done}
@@ -116,9 +156,25 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if not _swap.is_empty():
 		var k: float = clamp(_swap["t"] / _swap["dur"], 0.0, 1.0)
-		var pos: Array[Vector2] = swap_positions(_swap["a"], _swap["b"], k, _swap["revert"])
-		BallDraw.draw_ball(self, pos[0], _swap["r"], _swap["color_a"])
-		BallDraw.draw_ball(self, pos[1], _swap["r"], _swap["color_b"])
+		var vis: Dictionary = swap_visuals(_swap["a"], _swap["b"], k, _swap["revert"], _swap["r"])
+		for j in [1, 2, 3]:
+			var vk: float = k - 0.06 * float(j)
+			if vk <= 0.0:
+				continue
+			var trail: Dictionary = swap_visuals(_swap["a"], _swap["b"], vk, _swap["revert"], _swap["r"])
+			_draw_swap_ball(trail["a"], _swap["r"] * 0.94, _swap["color_a"], float(trail["scale"]) * 0.94, 0.13 / float(j))
+			_draw_swap_ball(trail["b"], _swap["r"] * 0.94, _swap["color_b"], float(trail["scale"]) * 0.94, 0.13 / float(j))
+		_draw_swap_ball(vis["a"], _swap["r"], _swap["color_a"], float(vis["scale"]), 1.0)
+		_draw_swap_ball(vis["b"], _swap["r"], _swap["color_b"], float(vis["scale"]), 1.0)
+		var mid: Vector2 = (_swap["a"] + _swap["b"]) * 0.5
+		if _swap["revert"]:
+			var no_a: float = 0.28 * sin(PI * k)
+			draw_arc(mid, _swap["r"] * 0.62, 0, TAU, 28, Color(0.85, 0.55, 0.65, no_a), 2.4, true)
+		else:
+			var spark_a: float = 0.75 * sin(PI * k)
+			if spark_a > 0.01:
+				draw_arc(mid, _swap["r"] * 0.62, 0, TAU, 32, Color(1.0, 0.80, 0.88, spark_a * 0.45), 2.2, true)
+				_sparkle(mid, _swap["r"] * 0.78 * (0.65 + 0.35 * spark_a), Color(1, 0.96, 0.90, spark_a))
 	for e in _effects:
 		var dur: float = POP_DUR if e["kind"] == "pop" else DROP_DUR
 		var k: float = clamp(e["t"] / dur, 0.0, 1.0)

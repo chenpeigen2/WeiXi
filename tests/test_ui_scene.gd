@@ -139,3 +139,23 @@ func test_landing_animation_queues_and_expires() -> void:
 	node.board_view._process(0.5)
 	assert_eq(node.board_view._landings.size(), 0, "结束后清理")
 	node.free()
+
+
+func test_match3_swap_keeps_board_until_animation_end() -> void:
+	var node := _instantiate_main()
+	node.game.board = Board.new(10, 14)
+	node.game.board.set_ball(Vector2i(2, 0), 3) # 锚点
+	node.game.board.set_ball(Vector2i(0, 1), 1)
+	node.game.board.set_ball(Vector2i(1, 1), 1)
+	node.game.board.set_ball(Vector2i(2, 1), 2)
+	node.game.board.set_ball(Vector2i(2, 2), 1)
+	node._animated_swap(Vector2i(2, 1), Vector2i(2, 2))
+	assert_true(node.fx_layer.is_swapping(), "互换动画开始")
+	assert_true(node.game.board.has_ball(Vector2i(2, 1)), "动画期间保留 before 棋盘")
+	assert_eq(node.game.board.get_color(Vector2i(2, 1)), 2, "动画期间不提前移除球")
+	assert_true(node.board_view.hidden_cells.has(Vector2i(2, 1)), "两个互换球隐藏交给特效层")
+	node.fx_layer._process(0.40)
+	assert_false(node.fx_layer.is_swapping(), "动画结束")
+	assert_false(node.game.board.has_ball(Vector2i(2, 1)), "落位后才消除")
+	assert_eq(node.board_view.hidden_cells.size(), 0, "隐藏格清理")
+	node.free()

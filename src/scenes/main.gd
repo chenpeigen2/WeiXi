@@ -282,6 +282,7 @@ func _start_new_game(seed: int, is_daily: bool) -> void:
 	shooter._flight = {}
 	shooter.set_preview(PackedVector2Array(), Vector2.ZERO, game.current_color)
 	board_view.clear_landings()
+	board_view.hidden_cells = {}
 	fx_layer.clear()
 	meta_bar.set_state(daily_mode, sticker_book.count())
 	refresh()
@@ -364,6 +365,9 @@ func _swap_select(c: Vector2i) -> void:
 		selected = c # 点非相邻球 = 改选
 	else:
 		_animated_swap(selected, c)
+		if not fx_layer.is_swapping():
+			refresh()
+		return
 	refresh()
 
 
@@ -376,6 +380,7 @@ func _animated_swap(a: Vector2i, c: Vector2i) -> void:
 	var o := _cam_origin()
 	var before: Dictionary = game.board.cells.duplicate()
 	var res: Dictionary = game.try_swap(a, c)
+	var after: Dictionary = game.board.cells.duplicate()
 	if _coach_step < 2:
 		_coach_step = 2
 	var pos_a := BoardCamera.to_screen(game.layout.cell_to_pixel(a), 1.0, o)
@@ -383,15 +388,21 @@ func _animated_swap(a: Vector2i, c: Vector2i) -> void:
 	var color_a: Color = Ui.BALL_COLORS[before[a]]
 	var color_b: Color = Ui.BALL_COLORS[before[c]]
 	var r: float = game.layout.radius * 0.95
+	board_view.selected = INVALID_CELL
 	board_view.hidden_cells = {a: true, c: true}
 	if res["matched"]:
-		fx_layer.play_swap(pos_a, pos_b, color_a, color_b, r, false, 0.16, func() -> void:
+		# 互换期间先保留完整 before 棋盘，等两球落位后再移除消除球，避免提前出现空洞。
+		game.board.cells = before.duplicate()
+		board_view.queue_redraw()
+		fx_layer.play_swap(pos_a, pos_b, color_a, color_b, r, false, 0.32, func() -> void:
+			game.board.cells = after
 			board_view.hidden_cells = {}
 			_spawn_effects(res, before)
 			refresh()
 		)
 	else:
-		fx_layer.play_swap(pos_a, pos_b, color_a, color_b, r, true, 0.28, func() -> void:
+		board_view.queue_redraw()
+		fx_layer.play_swap(pos_a, pos_b, color_a, color_b, r, true, 0.32, func() -> void:
 			board_view.hidden_cells = {}
 			refresh()
 		)

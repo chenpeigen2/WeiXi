@@ -40,3 +40,23 @@ func test_play_swap_lifecycle() -> void:
 	assert_false(fx.is_swapping(), "动画已结束")
 	assert_true(_cb_called, "结束回调触发")
 	fx.free()
+
+
+func test_swap_visuals_arc_scale_and_endpoints() -> void:
+	var v0: Dictionary = FxLayer.swap_visuals(A, B, 0.0, false, 20.0)
+	assert_vec_near(v0["a"], A, "视觉起点A")
+	assert_vec_near(v0["b"], B, "视觉起点B")
+	var v1: Dictionary = FxLayer.swap_visuals(A, B, 1.0, false, 20.0)
+	assert_vec_near(v1["a"], B, "视觉终点A")
+	assert_vec_near(v1["b"], A, "视觉终点B")
+	assert_true(absf(float(v1["scale"]) - 1.0) < 0.001, "终点恢复原尺寸")
+
+	var vm: Dictionary = FxLayer.swap_visuals(A, B, 0.5, false, 20.0)
+	assert_true(float(vm["scale"]) > 1.0, "中点有挤压回弹")
+	var perp := (B - A).normalized().orthogonal()
+	var offset: float = absf((vm["a"] - (A + B) * 0.5).dot(perp))
+	assert_true(offset > 4.0, "两球沿弧线绕开彼此")
+
+	var vr: Dictionary = FxLayer.swap_visuals(A, B, 1.0, true, 20.0)
+	assert_vec_near(vr["a"], A, "无效互换回原位")
+	assert_vec_near(vr["b"], B, "无效互换回原位")
