@@ -170,3 +170,13 @@ func test_board_hover_cell() -> void:
 	node.board_view.set_hover(Vector2i(-999, -999))
 	assert_eq(node.board_view.hover_cell, Vector2i(-999, -999), "悬停清除")
 	node.free()
+
+
+func test_board_shake_returns_to_rest() -> void:
+	var node := _instantiate_main()
+	node.board_view.play_shake(4.0)
+	assert_false(node.board_view._shake.is_empty(), "震屏开始")
+	node.board_view._process(0.30)
+	assert_true(node.board_view._shake.is_empty(), "震屏结束")
+	assert_eq(node.board_view.position, Vector2.ZERO, "回到原位")
+	node.free()

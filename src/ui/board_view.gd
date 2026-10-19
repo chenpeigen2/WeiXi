@@ -15,6 +15,8 @@ var selected := INVALID_CELL
 var hover_cell := INVALID_CELL
 var hidden_cells := {} # 互换动画期间被覆盖层接管、暂停绘制的格子
 var _landings: Array[Dictionary] = []
+var _anim_t := 0.0
+var _shake: Dictionary = {}
 
 var _panel_mat: Panel
 var _panel_glow: Control
@@ -99,24 +101,29 @@ func _draw() -> void:
 	for landing in _landings:
 		_draw_landing(landing)
 
-	# 悬停柔光
+	# 悬停柔光（呼吸）
 	if hover_cell != INVALID_CELL and hover_cell != selected and game.board.has_ball(hover_cell):
 		var hp: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(hover_cell), 1.0, origin)
-		draw_arc(hp, r * 1.08, 0, TAU, 36, Color(1.0, 0.96, 0.93, 0.65), 2.2, true)
+		var ha: float = 0.48 + 0.18 * (0.5 + 0.5 * sin(_anim_t * 5.0))
+		draw_arc(hp, r * (1.06 + 0.02 * sin(_anim_t * 5.0)), 0, TAU, 36, Color(1.0, 0.96, 0.93, ha), 2.2, true)
 
 	# 三消选中环 + 相邻目标小星星 + 虚线换位连接
 	if selected != INVALID_CELL and game.board.has_ball(selected):
 		var pos: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(selected), 1.0, origin)
+		var pulse: float = 1.0 + 0.022 * sin(_anim_t * 6.0)
 		var glow := Ui.ACCENT
-		glow.a = 0.18
-		draw_arc(pos, r * 1.16, 0, TAU, 40, glow, 7.0, true)
-		draw_arc(pos, r * 1.05, 0, TAU, 40, Ui.SELECTION, 3.5, true)
-		_star(pos + Vector2(0, -r * 1.18), 4.6, Ui.HEART)
+		glow.a = 0.14 + 0.06 * (0.5 + 0.5 * sin(_anim_t * 6.0))
+		draw_arc(pos, r * 1.16 * pulse, 0, TAU, 40, glow, 7.0, true)
+		draw_arc(pos, r * 1.05 * pulse, 0, TAU, 40, Ui.SELECTION, 3.5, true)
+		_star(pos + Vector2(0, -r * 1.18 + 2.0 * sin(_anim_t * 4.0)), 4.6, Ui.HEART)
+		var idx := 0
 		for n in HexGrid.neighbors(selected):
 			if not game.board.has_ball(n):
 				continue
 			var np: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(n), 1.0, origin)
-			_star(np + Vector2(r * 0.52, -r * 0.86), 3.2, Color(1.0, 0.66, 0.76, 0.55))
+			var tw: float = 0.40 + 0.24 * (0.5 + 0.5 * sin(_anim_t * 4.0 + float(idx) * 0.8))
+			_star(np + Vector2(r * 0.52, -r * 0.86), 3.2, Color(1.0, 0.66, 0.76, tw))
+			idx += 1
 		if hover_cell != INVALID_CELL and HexGrid.neighbors(selected).has(hover_cell):
 			var hp2: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(hover_cell), 1.0, origin)
 			draw_dashed_line(pos, hp2, Color(1.0, 0.55, 0.68, 0.70), 2.0, 8.0)
@@ -146,7 +153,25 @@ func play_landing(cell: Vector2i, impact_dir: Vector2) -> void:
 	queue_redraw()
 
 
+func play_shake(amount: float) -> void:
+	_shake = {"t": 0.0, "dur": 0.24, "amp": amount}
+
+
 func _process(delta: float) -> void:
+	if selected != INVALID_CELL or hover_cell != INVALID_CELL:
+		_anim_t += delta
+		queue_redraw()
+	if not _shake.is_empty():
+		_shake["t"] += delta
+		var sk: float = clampf(float(_shake["t"]) / float(_shake["dur"]), 0.0, 1.0)
+		var fall: float = 1.0 - sk
+		position = Vector2(
+			sin(float(_shake["t"]) * 72.0) * float(_shake["amp"]) * fall,
+			cos(float(_shake["t"]) * 53.0) * float(_shake["amp"]) * 0.55 * fall
+		)
+		if sk >= 1.0:
+			_shake = {}
+			position = Vector2.ZERO
 	if _landings.is_empty():
 		return
 	var keep: Array[Dictionary] = []

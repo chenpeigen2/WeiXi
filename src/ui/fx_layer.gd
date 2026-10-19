@@ -7,13 +7,79 @@ const NumericFont = preload("res://fonts/Fredoka-Variable.ttf")
 const POP_DUR := 0.30
 const DROP_DUR := 0.50
 const DROP_GRAVITY := 4500.0
+const SPARK_GRAVITY := 900.0
 
 var _effects: Array[Dictionary] = []
+var _sparks: Array[Dictionary] = []
 var _swap: Dictionary = {} # {a,b,color_a,color_b,r,revert,dur,t,cb}
 
 
 func spawn_pop(pos: Vector2, r: float, color: Color) -> void:
 	_effects.append({"kind": "pop", "pos": pos, "r": r, "color": color, "t": 0.0})
+	spawn_burst(pos, color, 3, 0.75, 0.30)
+	queue_redraw()
+
+
+## 星星/爱心粒子爆点；count 建议 3~12，避免大量消除时粒子过密。
+func spawn_burst(pos: Vector2, color: Color, count := 6, power := 1.0, heart_chance := 0.25) -> void:
+	for i in range(count):
+		var ang := randf() * TAU
+		var speed := randf_range(80.0, 260.0) * power
+		var kind := "heart" if randf() < heart_chance else "star"
+		_sparks.append({
+			"pos": pos,
+			"vel": Vector2(cos(ang), sin(ang)) * speed + Vector2(0, -55.0),
+			"t": 0.0,
+			"life": randf_range(0.34, 0.60),
+			"color": color,
+			"size": randf_range(3.0, 5.6),
+			"kind": kind,
+		})
+	queue_redraw()
+
+
+## 有效互换落位：两颗球颜色混合的星心爆点。
+func spawn_swap_burst(a: Vector2, b: Vector2, color_a: Color, color_b: Color) -> void:
+	var mid := (a + b) * 0.5
+	for i in range(10):
+		var ang := randf() * TAU
+		var speed := randf_range(100.0, 280.0)
+		_sparks.append({
+			"pos": mid,
+			"vel": Vector2(cos(ang), sin(ang)) * speed + Vector2(0, -40.0),
+			"t": 0.0,
+			"life": randf_range(0.36, 0.62),
+			"color": color_a if i % 2 == 0 else color_b,
+			"size": randf_range(3.6, 6.2),
+			"kind": "star" if i % 4 != 0 else "heart",
+		})
+	for i in range(2):
+		_sparks.append({
+			"pos": mid + Vector2(-8.0 + 16.0 * i, -4.0),
+			"vel": Vector2(-28.0 + 56.0 * i, -110.0),
+			"t": 0.0,
+			"life": 0.62,
+			"color": Color(1.0, 0.62, 0.75),
+			"size": 5.2,
+			"kind": "heart",
+		})
+	queue_redraw()
+
+
+## 无效互换：一团低饱和小烟雾，不抢戏。
+func spawn_invalid_puff(pos: Vector2) -> void:
+	for i in range(6):
+		var ang := randf() * TAU
+		var speed := randf_range(45.0, 110.0)
+		_sparks.append({
+			"pos": pos,
+			"vel": Vector2(cos(ang), sin(ang)) * speed + Vector2(0, -30.0),
+			"t": 0.0,
+			"life": randf_range(0.28, 0.45),
+			"color": Color(0.86, 0.64, 0.72),
+			"size": randf_range(2.4, 4.2),
+			"kind": "dot",
+		})
 	queue_redraw()
 
 
@@ -38,12 +104,16 @@ func spawn_text(pos: Vector2, text: String, size := 24, color := Color(1.0, 0.60
 	label.add_theme_color_override("font_color", color)
 	label.add_theme_color_override("font_outline_color", Color(0.12, 0.06, 0.10, 0.9))
 	label.add_theme_constant_override("outline_size", 4)
+	label.pivot_offset = Vector2(150, 18)
+	label.scale = Vector2(0.68, 0.68)
 	add_child(label)
 
 	var tw := create_tween()
 	tw.set_parallel(true)
 	tw.tween_property(label, "position:y", label.position.y - 48.0, 0.8).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	tw.tween_property(label, "modulate:a", 0.0, 0.8).set_ease(Tween.EASE_IN)
+	tw.tween_property(label, "scale", Vector2(1.12, 1.12), 0.16).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.tween_property(label, "scale", Vector2.ONE, 0.14).set_delay(0.16).set_ease(Tween.EASE_IN_OUT)
 	tw.chain().tween_callback(label.queue_free)
 
 
@@ -56,6 +126,7 @@ func spawn_score_text(pos: Vector2, amount: int, color := Color(1.0, 0.60, 0.74)
 
 func clear() -> void:
 	_effects.clear()
+	_sparks.clear()
 	_swap = {}
 	for child in get_children():
 		child.queue_free()
@@ -123,12 +194,26 @@ func _draw_swap_ball(pos: Vector2, r: float, color: Color, sx: float, sy: float,
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
-func _sparkle(p: Vector2, s: float, c: Color) -> void:
+func _star_shape(p: Vector2, s: float, c: Color) -> void:
 	var q: float = s * 0.24
 	draw_colored_polygon(PackedVector2Array([
 		p + Vector2(0, -s), p + Vector2(q, -q), p + Vector2(s, 0), p + Vector2(q, q),
 		p + Vector2(0, s), p + Vector2(-q, q), p + Vector2(-s, 0), p + Vector2(-q, -q),
 	]), c)
+
+
+func _heart_shape(p: Vector2, s: float, c: Color) -> void:
+	draw_circle(p + Vector2(-s * 0.30, -s * 0.08), s * 0.36, c)
+	draw_circle(p + Vector2(s * 0.30, -s * 0.08), s * 0.36, c)
+	draw_colored_polygon(PackedVector2Array([
+		p + Vector2(-s * 0.60, -s * 0.04),
+		p + Vector2(s * 0.60, -s * 0.04),
+		p + Vector2(0, s * 0.68),
+	]), c)
+
+
+func _sparkle(p: Vector2, s: float, c: Color) -> void:
+	_star_shape(p, s, c)
 	draw_circle(p, s * 0.16, Color(1, 1, 1, c.a * 0.8))
 
 func play_swap(a: Vector2, b: Vector2, color_a: Color, color_b: Color, r: float, revert: bool, dur: float, on_done: Callable) -> void:
@@ -147,6 +232,16 @@ func _process(delta: float) -> void:
 			var cb: Callable = _swap["cb"]
 			_swap = {}
 			cb.call()
+		queue_redraw()
+	if not _sparks.is_empty():
+		var keep_sparks: Array[Dictionary] = []
+		for sp in _sparks:
+			sp["t"] += delta
+			if sp["t"] < sp["life"]:
+				sp["vel"].y += SPARK_GRAVITY * delta
+				sp["pos"] += sp["vel"] * delta
+				keep_sparks.append(sp)
+		_sparks = keep_sparks
 		queue_redraw()
 	if _effects.is_empty():
 		return
@@ -192,7 +287,22 @@ func _draw() -> void:
 		if e["kind"] == "pop":
 			c.a = 0.85 * (1.0 - k)
 			draw_arc(e["pos"], e["r"] * (1.0 + k * 1.1), 0, TAU, 32, c, max(1.0, 5.0 * (1.0 - k)), true)
+			var inner := Color(c.r, c.g, c.b, 0.50 * (1.0 - k))
+			draw_arc(e["pos"], e["r"] * (0.65 + 0.55 * k), 0, TAU, 28, inner, 2.2, true)
+			if k < 0.35:
+				draw_circle(e["pos"], e["r"] * (0.52 + 0.5 * k), Color(1, 1, 1, 0.24 * (1.0 - k / 0.35)))
 			c.a = 0.45 * (1.0 - k)
 			draw_circle(e["pos"], e["r"] * (1.0 - k) * 0.9, c)
 		else:
 			BallDraw.draw_ball(self, e["pos"], e["r"] * 0.95, e["color"], 1.0 - k * k)
+	for sp in _sparks:
+		var sk: float = sp["t"] / sp["life"]
+		var sc: Color = sp["color"]
+		sc.a *= (1.0 - sk)
+		var ss: float = sp["size"] * (1.0 - 0.25 * sk)
+		if sp["kind"] == "heart":
+			_heart_shape(sp["pos"], ss, sc)
+		elif sp["kind"] == "star":
+			_star_shape(sp["pos"], ss, sc)
+		else:
+			draw_circle(sp["pos"], ss * 0.8, sc)

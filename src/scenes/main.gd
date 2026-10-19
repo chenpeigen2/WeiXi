@@ -404,6 +404,7 @@ func _animated_swap(a: Vector2i, c: Vector2i) -> void:
 		fx_layer.play_swap(pos_a, pos_b, color_a, color_b, r, false, 0.32, func() -> void:
 			game.board.cells = after
 			board_view.hidden_cells = {}
+			fx_layer.spawn_swap_burst(pos_a, pos_b, color_a, color_b)
 			_spawn_effects(res, before)
 			refresh()
 		)
@@ -411,6 +412,7 @@ func _animated_swap(a: Vector2i, c: Vector2i) -> void:
 		board_view.queue_redraw()
 		fx_layer.play_swap(pos_a, pos_b, color_a, color_b, r, true, 0.32, func() -> void:
 			board_view.hidden_cells = {}
+			fx_layer.spawn_invalid_puff((pos_a + pos_b) * 0.5)
 			refresh()
 		)
 
@@ -433,8 +435,13 @@ func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 			center += BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
 		center /= float(res["popped"].size())
 		fx_layer.spawn_score_text(center, gain)
-		if res["popped"].size() >= 6:
-			fx_layer.spawn_text(center - Vector2(0, 54), "好厉害！", 26, Ui.ACCENT)
+		var n: int = res["popped"].size()
+		if n >= 4:
+			var msg := "漂亮！" if n == 4 else ("太棒了！" if n == 5 else "好厉害！")
+			var fs := 24 if n == 4 else (26 if n == 5 else 28)
+			fx_layer.spawn_text(center - Vector2(0, 54), msg, fs, Ui.ACCENT)
+		if n >= 5:
+			board_view.play_shake(2.5 + minf(2.5, float(n - 5) * 0.6))
 
 	if res.get("star_burst", false):
 		fx_layer.spawn_text(Vector2(Ui.SCREEN_W * 0.5, 540.0), "星星泡泡！", 28, Ui.ACCENT)
