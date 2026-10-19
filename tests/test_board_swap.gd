@@ -49,3 +49,15 @@ func test_swap_rejects_non_adjacent() -> void:
 	assert_false(res["matched"], "不相邻不能换")
 	assert_eq(b.get_color(Vector2i(0, 0)), 1)
 	assert_eq(b.get_color(Vector2i(5, 5)), 2)
+
+
+func test_swap_effect_colors_use_post_swap_balls() -> void:
+	var b := Board.new(10, 12)
+	b.set_ball(Vector2i(2, 0), 3)
+	b.set_ball(Vector2i(0, 1), 1)
+	b.set_ball(Vector2i(1, 1), 1)
+	b.set_ball(Vector2i(2, 1), 2)
+	b.set_ball(Vector2i(2, 2), 1)
+	var res: Dictionary = b.swap(Vector2i(2, 1), Vector2i(2, 2))
+	assert_eq(int(res["popped_colors"][Vector2i(2, 1)]), 1, "消除格取互换后的实际颜色")
+	assert_eq(int(res["dropped_colors"][Vector2i(2, 2)]), 2, "掉落球取互换后的实际颜色")

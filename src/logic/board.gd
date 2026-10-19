@@ -137,19 +137,25 @@ func swap(a: Vector2i, b: Vector2i) -> Dictionary:
 		return result
 	result["matched"] = true
 	var counts := {}
+	var popped_colors := {}
 	for c in matched.keys():
 		var col: int = cells[c]
 		counts[col] = counts.get(col, 0) + 1
+		popped_colors[c] = col
 	result["color_counts"] = counts
+	result["popped_colors"] = popped_colors
 	var popped: Array[Vector2i] = []
 	for c in matched.keys():
 		remove_ball(c)
 		popped.append(c)
 	result["popped"] = popped
 	var fl := floating()
+	var dropped_colors := {}
 	for c in fl:
+		dropped_colors[c] = cells[c]
 		remove_ball(c)
 	result["dropped"] = fl
+	result["dropped_colors"] = dropped_colors
 	return result
 
 
@@ -177,16 +183,22 @@ func floating() -> Array[Vector2i]:
 ## 新球吸附到 cell 后结算：相连同色 >=3 消除，失去支撑的悬空球掉落。
 ## 返回 {"popped": Array[Vector2i], "dropped": Array[Vector2i]}
 func resolve_at(cell: Vector2i) -> Dictionary:
-	var result: Dictionary = {"popped": [], "dropped": [], "color_counts": {}}
+	var result: Dictionary = {"popped": [], "dropped": [], "color_counts": {}, "popped_colors": {}, "dropped_colors": {}}
 	var cl := cluster(cell)
 	if cl.size() >= 3:
 		var col: int = cells[cell]
 		result["color_counts"] = {col: cl.size()}
+		var popped_colors := {}
 		for c in cl:
+			popped_colors[c] = col
 			remove_ball(c)
 		result["popped"] = cl
+		result["popped_colors"] = popped_colors
 		var fl := floating()
+		var dropped_colors := {}
 		for c in fl:
+			dropped_colors[c] = cells[c]
 			remove_ball(c)
 		result["dropped"] = fl
+		result["dropped_colors"] = dropped_colors
 	return result

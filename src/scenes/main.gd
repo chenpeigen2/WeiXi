@@ -421,11 +421,13 @@ func _animated_swap(a: Vector2i, c: Vector2i) -> void:
 
 func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 	var o := _cam_origin()
+	var popped_colors: Dictionary = res.get("popped_colors", {})
 	for c in res["popped"]:
 		var pos := BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
-		fx_layer.spawn_pop(pos, game.layout.radius, Ui.BALL_COLORS[before.get(c, 0)])
-	_spawn_drop_effects(res["dropped"], before)
-	_spawn_drop_effects(res.get("overflow", []), before)
+		var color_idx: int = int(popped_colors.get(c, before.get(c, game.current_color)))
+		fx_layer.spawn_pop(pos, game.layout.radius, Ui.BALL_COLORS[color_idx])
+	_spawn_drop_effects(res["dropped"], res.get("dropped_colors", {}), before)
+	_spawn_drop_effects(res.get("overflow", []), {}, before)
 
 	# +分浮字：本发有消除才出现。
 	var gain: int = int(res.get("gain", 0))
@@ -466,11 +468,12 @@ func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 		)
 
 
-func _spawn_drop_effects(cells: Array, before: Dictionary) -> void:
+func _spawn_drop_effects(cells: Array, colors: Dictionary, before: Dictionary) -> void:
 	var o := _cam_origin()
 	for c in cells:
 		var pos := BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
-		fx_layer.spawn_drop(pos, game.layout.radius, Ui.BALL_COLORS[before.get(c, 0)])
+		var color_idx: int = int(colors.get(c, before.get(c, 0)))
+		fx_layer.spawn_drop(pos, game.layout.radius, Ui.BALL_COLORS[color_idx])
 
 
 # ---------- 弹道（预览与飞行共用同一条折线） ----------

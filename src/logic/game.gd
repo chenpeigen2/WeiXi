@@ -186,19 +186,25 @@ func _rainbow_wash(res: Dictionary) -> void:
 			washed.append(c)
 	if washed.is_empty():
 		return
+	var popped_colors: Dictionary = res.get("popped_colors", {})
 	for c in washed:
+		popped_colors[c] = color
 		board.remove_ball(c)
 	var popped: Array = res["popped"]
 	popped.append_array(washed)
 	res["popped"] = popped
+	res["popped_colors"] = popped_colors
 	counts[color] = int(counts.get(color, 0)) + washed.size()
 	res["color_counts"] = counts
 	var fl: Array[Vector2i] = board.floating()
+	var dropped_colors: Dictionary = res.get("dropped_colors", {})
 	for c in fl:
+		dropped_colors[c] = board.get_color(c)
 		board.remove_ball(c)
 	var dropped: Array = res["dropped"]
 	dropped.append_array(fl)
 	res["dropped"] = dropped
+	res["dropped_colors"] = dropped_colors
 	res["rainbow"] = true
 
 
@@ -208,20 +214,26 @@ func _star_burst(cell: Vector2i) -> Dictionary:
 	cells.append_array(HexGrid.neighbors(cell))
 	var popped: Array[Vector2i] = []
 	var counts := {}
+	var popped_colors := {}
 	for c in cells:
 		if not board.has_ball(c):
 			continue
 		var col: int = board.get_color(c)
 		counts[col] = counts.get(col, 0) + 1
+		popped_colors[c] = col
 		board.remove_ball(c)
 		popped.append(c)
 	var fl: Array[Vector2i] = board.floating()
+	var dropped_colors := {}
 	for c in fl:
+		dropped_colors[c] = board.get_color(c)
 		board.remove_ball(c)
 	return {
 		"popped": popped,
 		"dropped": fl,
 		"color_counts": counts,
+		"popped_colors": popped_colors,
+		"dropped_colors": dropped_colors,
 		"star_burst": true,
 	}
 
