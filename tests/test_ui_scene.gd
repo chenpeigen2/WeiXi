@@ -175,7 +175,7 @@ func test_board_hover_cell() -> void:
 func test_board_shake_returns_to_rest() -> void:
 	var node := _instantiate_main()
 	node.board_view.play_shake(4.0)
-	assert_false(node.board_view._shake.is_empty(), "震屏开始")
+	assert_true(node.board_view.is_shaking(), "震屏开始")
 	node.board_view._process(0.30)
 	assert_true(node.board_view._shake.is_empty(), "震屏结束")
 	assert_eq(node.board_view.position, Vector2.ZERO, "回到原位")

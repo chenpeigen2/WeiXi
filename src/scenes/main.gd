@@ -208,7 +208,7 @@ func _pop_hint() -> void:
 
 ## 桌面 hover：可点元素显示手型光标，减少“这里能不能点”的猜测。
 func _update_cursor(pos: Vector2) -> void:
-	if shooter.is_flying() or fx_layer.is_swapping():
+	if shooter.is_flying() or fx_layer.is_swapping() or board_view.is_shaking():
 		board_view.set_hover(INVALID_CELL)
 		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 		return
@@ -231,7 +231,7 @@ var _popup_cell := INVALID_CELL
 
 
 func _try_cycle_board_ball(pos: Vector2) -> void:
-	if shooter.is_flying() or fx_layer.is_swapping():
+	if shooter.is_flying() or fx_layer.is_swapping() or board_view.is_shaking():
 		return
 	var c: Vector2i = game.layout.pixel_to_cell(BoardCamera.to_board(pos, 1.0, _cam_origin()))
 	if not game.board.has_ball(c):
@@ -272,7 +272,7 @@ func _on_random() -> void:
 
 func _on_stickers() -> void:
 	# 飞行/互换中不打开相册，避免盖住正在结算的球
-	if shooter.is_flying() or fx_layer.is_swapping():
+	if shooter.is_flying() or fx_layer.is_swapping() or board_view.is_shaking():
 		return
 	if color_popup.active:
 		color_popup.close()
@@ -299,6 +299,7 @@ func _start_new_game(seed: int, is_daily: bool) -> void:
 	shooter._flight = {}
 	shooter.set_preview(PackedVector2Array(), Vector2.ZERO, game.current_color)
 	board_view.clear_landings()
+	board_view.clear_motion()
 	board_view.set_hover(INVALID_CELL)
 	board_view.hidden_cells = {}
 	fx_layer.clear()
@@ -327,8 +328,8 @@ func _on_tap(pos: Vector2) -> void:
 	if color_popup.active:
 		_apply_popup_tap(pos)
 		return
-	# 飞行/互换期间锁输入，避免“飞的是旧色、落的是新色”
-	if shooter.is_flying() or fx_layer.is_swapping():
+	# 飞行/互换/震屏期间锁输入，避免“飞的是旧色、落的是新色”或震屏误点
+	if shooter.is_flying() or fx_layer.is_swapping() or board_view.is_shaking():
 		return
 	# 作弊1：颜色选择条优先命中
 	var i := BallPicker.hit(pos)
@@ -346,7 +347,7 @@ func _on_tap(pos: Vector2) -> void:
 # ---------- 发射 ----------
 
 func _fire() -> void:
-	if shooter.is_flying() or fx_layer.is_swapping():
+	if shooter.is_flying() or fx_layer.is_swapping() or board_view.is_shaking():
 		return
 	var tr := _trace_screen()
 	if tr["cell"] == INVALID_CELL:
@@ -436,10 +437,12 @@ func _animated_swap(a: Vector2i, c: Vector2i) -> void:
 func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 	var o := _cam_origin()
 	var popped_colors: Dictionary = res.get("popped_colors", {})
-	for c in res["popped"]:
+	var pop_n: int = res["popped"].size()
+	for idx in range(pop_n):
+		var c: Vector2i = res["popped"][idx]
 		var pos := BoardCamera.to_screen(game.layout.cell_to_pixel(c), 1.0, o)
 		var color_idx: int = int(popped_colors.get(c, before.get(c, game.current_color)))
-		fx_layer.spawn_pop(pos, game.layout.radius, Ui.BALL_COLORS[color_idx])
+		fx_layer.spawn_pop(pos, game.layout.radius, Ui.BALL_COLORS[color_idx], idx < 6 or pop_n <= 6)
 	_spawn_drop_effects(res["dropped"], res.get("dropped_colors", {}), before)
 	_spawn_drop_effects(res.get("overflow", []), {}, before)
 

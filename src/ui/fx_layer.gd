@@ -9,6 +9,7 @@ const POP_DUR := 0.30
 const DROP_DUR := 0.50
 const DROP_GRAVITY := 4500.0
 const SPARK_GRAVITY := 900.0
+const MAX_SPARKS := 140
 
 var _effects: Array[Dictionary] = []
 var _sparks: Array[Dictionary] = []
@@ -23,9 +24,9 @@ var _kawaii_colors := [
 var _swap: Dictionary = {} # {a,b,color_a,color_b,r,revert,dur,t,cb}
 
 
-func spawn_pop(pos: Vector2, r: float, color: Color) -> void:
-	_effects.append({"kind": "pop", "pos": pos, "r": r, "color": color, "t": 0.0})
-	spawn_burst(pos, color, 3, 0.75, 0.30)
+func spawn_pop(pos: Vector2, r: float, color: Color, decorated := true) -> void:
+	_effects.append({"kind": "pop", "pos": pos, "r": r, "color": color, "t": 0.0, "decorated": decorated})
+	spawn_burst(pos, color, 3 if decorated else 2, 0.75, 0.30)
 	queue_redraw()
 
 
@@ -52,6 +53,7 @@ func spawn_burst(pos: Vector2, color: Color, count := 6, power := 1.0, heart_cha
 			"size": randf_range(4.0, 6.6),
 			"kind": kind,
 		})
+	_trim_sparks()
 	queue_redraw()
 
 
@@ -85,6 +87,7 @@ func spawn_swap_burst(a: Vector2, b: Vector2, color_a: Color, color_b: Color) ->
 			"size": 5.2,
 			"kind": "heart",
 		})
+	_trim_sparks()
 	queue_redraw()
 
 
@@ -111,7 +114,13 @@ func spawn_invalid_puff(pos: Vector2) -> void:
 		"size": 4.2,
 		"kind": "drop",
 	})
+	_trim_sparks()
 	queue_redraw()
+
+
+func _trim_sparks() -> void:
+	while _sparks.size() > MAX_SPARKS:
+		_sparks.pop_front()
 
 
 func spawn_drop(pos: Vector2, r: float, color: Color) -> void:
@@ -318,6 +327,7 @@ func _process(delta: float) -> void:
 					"size": randf_range(2.0, 3.4),
 					"kind": "dot",
 				})
+			_trim_sparks()
 	_effects = keep
 	queue_redraw()
 

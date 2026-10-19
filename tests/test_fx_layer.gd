@@ -29,3 +29,11 @@ func test_spawn_pop_adds_and_expires_sparks() -> void:
 	fx._process(0.8)
 	assert_eq(fx._sparks.size(), 0, "粒子生命周期结束")
 	fx.free()
+
+
+func test_spark_particle_cap() -> void:
+	var fx: Node2D = FxLayer.new()
+	for i in range(30):
+		fx.spawn_burst(Vector2(100, 100), Color.RED, 10)
+	assert_true(fx._sparks.size() <= FxLayer.MAX_SPARKS, "大量消除时粒子数量有上限")
+	fx.free()

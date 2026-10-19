@@ -163,6 +163,15 @@ func play_shake(amount: float) -> void:
 	_shake = {"t": 0.0, "dur": 0.24, "amp": amount}
 
 
+func is_shaking() -> bool:
+	return not _shake.is_empty()
+
+
+func clear_motion() -> void:
+	_shake = {}
+	position = Vector2.ZERO
+
+
 func _process(delta: float) -> void:
 	if selected != INVALID_CELL or hover_cell != INVALID_CELL:
 		_anim_t += delta

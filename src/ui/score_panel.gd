@@ -12,10 +12,13 @@ var _value_label: Label
 var _combo_label: Label
 var _panel: StyleBoxFlat
 var _pill: StyleBoxFlat
+var _fever_halo: StyleBoxFlat
 var _pill_rect := Rect2(Ui.COMBO_PILL_X, Ui.COMBO_PILL_Y, Ui.COMBO_PILL_W, Ui.COMBO_PILL_H)
 var _last_combo := 1
 var _last_fever := 0
 var _last_score := -1
+var _fever_on := false
+var _t := 0.0
 
 
 func _ready() -> void:
@@ -35,6 +38,10 @@ func _ready() -> void:
 	_pill = StyleBoxFlat.new()
 	_pill.bg_color = Ui.COMBO_IDLE_BG
 	_pill.set_corner_radius_all(int(Ui.COMBO_PILL_H * 0.5))
+
+	_fever_halo = StyleBoxFlat.new()
+	_fever_halo.bg_color = Color(1.0, 0.55, 0.70, 0.10)
+	_fever_halo.set_corner_radius_all(int(Ui.COMBO_PILL_H * 0.5 + 3.0))
 
 	_label_label = Label.new()
 	_label_label.name = "ScoreLabel"
@@ -95,6 +102,7 @@ func set_score(score: int, combo: int, fever := 0) -> void:
 			_pop_combo()
 		_last_combo = combo
 		_last_fever = fever
+	_fever_on = fever > 0
 	queue_redraw()
 
 
@@ -135,9 +143,19 @@ static func _group(n: int) -> String:
 	return out
 
 
+func _process(delta: float) -> void:
+	if _fever_on:
+		_t += delta
+		queue_redraw()
+
+
 func _draw() -> void:
 	draw_style_box(_panel, Rect2(Vector2.ZERO, size))
 	draw_line(Vector2(20.0, 0.5), Vector2(size.x - 20.0, 0.5), Color(0.62, 0.88, 0.74, 0.65), 1.0)
+	if _fever_on:
+		var pulse: float = 0.5 + 0.5 * sin(_t * 4.2)
+		_fever_halo.bg_color = Color(1.0, 0.55, 0.70, 0.09 + 0.06 * pulse)
+		draw_style_box(_fever_halo, _pill_rect.grow(3.0 + 2.5 * pulse))
 	draw_style_box(_pill, _pill_rect)
 	_draw_bunny()
 
