@@ -440,8 +440,9 @@ func _spawn_effects(res: Dictionary, before: Dictionary) -> void:
 			var msg := "漂亮！" if n == 4 else ("太棒了！" if n == 5 else "好厉害！")
 			var fs := 24 if n == 4 else (26 if n == 5 else 28)
 			fx_layer.spawn_text(center - Vector2(0, 54), msg, fs, Ui.ACCENT)
+			fx_layer.spawn_burst(center - Vector2(0, 54), Ui.ROSE, 3, 0.45, 1.0)
 		if n >= 5:
-			board_view.play_shake(2.5 + minf(2.5, float(n - 5) * 0.6))
+			board_view.play_shake(1.8 + minf(1.4, float(n - 5) * 0.35))
 
 	if res.get("star_burst", false):
 		fx_layer.spawn_text(Vector2(Ui.SCREEN_W * 0.5, 540.0), "星星泡泡！", 28, Ui.ACCENT)

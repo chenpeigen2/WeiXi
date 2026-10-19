@@ -3,6 +3,7 @@ extends Node2D
 
 const BallDraw = preload("res://src/ui/ball_draw.gd")
 const NumericFont = preload("res://fonts/Fredoka-Variable.ttf")
+const Ui = preload("res://src/ui/theme.gd")
 
 const POP_DUR := 0.30
 const DROP_DUR := 0.50
@@ -11,6 +12,14 @@ const SPARK_GRAVITY := 900.0
 
 var _effects: Array[Dictionary] = []
 var _sparks: Array[Dictionary] = []
+var _kawaii_colors := [
+	Color(1.0, 0.62, 0.74), # 草莓
+	Color(1.0, 0.86, 0.56), # 柠檬
+	Color(0.64, 0.90, 0.74), # 薄荷
+	Color(0.80, 0.72, 0.97), # 薰衣草
+	Color(1.0, 0.76, 0.64), # 蜜桃
+	Color(1.0, 0.97, 0.91), # 奶油
+]
 var _swap: Dictionary = {} # {a,b,color_a,color_b,r,revert,dur,t,cb}
 
 
@@ -24,15 +33,23 @@ func spawn_pop(pos: Vector2, r: float, color: Color) -> void:
 func spawn_burst(pos: Vector2, color: Color, count := 6, power := 1.0, heart_chance := 0.25) -> void:
 	for i in range(count):
 		var ang := randf() * TAU
-		var speed := randf_range(80.0, 260.0) * power
-		var kind := "heart" if randf() < heart_chance else "star"
+		var speed := randf_range(75.0, 245.0) * power
+		var roll := randf()
+		var kind := "star"
+		if roll < 0.18:
+			kind = "bunny"
+		elif roll < 0.18 + heart_chance:
+			kind = "heart"
+		var c: Color = color.lerp(Color(1.0, 0.97, 0.93), 0.35)
+		if randf() < 0.55:
+			c = _kawaii_colors[randi() % _kawaii_colors.size()]
 		_sparks.append({
 			"pos": pos,
-			"vel": Vector2(cos(ang), sin(ang)) * speed + Vector2(0, -55.0),
+			"vel": Vector2(cos(ang), sin(ang)) * speed + Vector2(0, -50.0),
 			"t": 0.0,
-			"life": randf_range(0.34, 0.60),
-			"color": color,
-			"size": randf_range(3.0, 5.6),
+			"life": randf_range(0.36, 0.64),
+			"color": c,
+			"size": randf_range(4.0, 6.6),
 			"kind": kind,
 		})
 	queue_redraw()
@@ -44,14 +61,19 @@ func spawn_swap_burst(a: Vector2, b: Vector2, color_a: Color, color_b: Color) ->
 	for i in range(10):
 		var ang := randf() * TAU
 		var speed := randf_range(100.0, 280.0)
+		var kind := "star"
+		if i < 2:
+			kind = "bunny"
+		elif i < 5:
+			kind = "heart"
 		_sparks.append({
 			"pos": mid,
 			"vel": Vector2(cos(ang), sin(ang)) * speed + Vector2(0, -40.0),
 			"t": 0.0,
 			"life": randf_range(0.36, 0.62),
-			"color": color_a if i % 2 == 0 else color_b,
-			"size": randf_range(3.6, 6.2),
-			"kind": "star" if i % 4 != 0 else "heart",
+			"color": _kawaii_colors[i % _kawaii_colors.size()],
+			"size": randf_range(4.5, 6.8),
+			"kind": kind,
 		})
 	for i in range(2):
 		_sparks.append({
@@ -76,10 +98,19 @@ func spawn_invalid_puff(pos: Vector2) -> void:
 			"vel": Vector2(cos(ang), sin(ang)) * speed + Vector2(0, -30.0),
 			"t": 0.0,
 			"life": randf_range(0.28, 0.45),
-			"color": Color(0.86, 0.64, 0.72),
+			"color": Color(0.84, 0.70, 0.86),
 			"size": randf_range(2.4, 4.2),
 			"kind": "dot",
 		})
+	_sparks.append({
+		"pos": pos + Vector2(6.0, -4.0),
+		"vel": Vector2(18.0, -80.0),
+		"t": 0.0,
+		"life": 0.48,
+		"color": Color(0.62, 0.80, 0.96),
+		"size": 4.2,
+		"kind": "drop",
+	})
 	queue_redraw()
 
 
@@ -202,6 +233,26 @@ func _star_shape(p: Vector2, s: float, c: Color) -> void:
 	]), c)
 
 
+func _hello_face(p: Vector2, s: float, c: Color) -> void:
+	var ink := Color(0.32, 0.18, 0.25, c.a)
+	draw_circle(p + Vector2(-s * 0.20, -s * 0.04), maxf(0.8, s * 0.07), ink)
+	draw_circle(p + Vector2(s * 0.20, -s * 0.04), maxf(0.8, s * 0.07), ink)
+	draw_arc(p + Vector2(0, s * 0.10), s * 0.15, 0.15, PI - 0.15, 8, ink, 0.9, true)
+	var blush := Color(1.0, 0.58, 0.70, c.a * 0.45)
+	draw_circle(p + Vector2(-s * 0.40, s * 0.10), s * 0.10, blush)
+	draw_circle(p + Vector2(s * 0.40, s * 0.10), s * 0.10, blush)
+
+
+func _bunny_shape(p: Vector2, s: float, c: Color) -> void:
+	var inner := Color(1.0, 0.82, 0.88, c.a)
+	draw_circle(p + Vector2(-s * 0.34, -s * 0.78), s * 0.23, c)
+	draw_circle(p + Vector2(s * 0.34, -s * 0.78), s * 0.23, c)
+	draw_circle(p + Vector2(-s * 0.34, -s * 0.78), s * 0.11, inner)
+	draw_circle(p + Vector2(s * 0.34, -s * 0.78), s * 0.11, inner)
+	draw_circle(p, s * 0.53, c)
+	_hello_face(p, s, c)
+
+
 func _heart_shape(p: Vector2, s: float, c: Color) -> void:
 	draw_circle(p + Vector2(-s * 0.30, -s * 0.08), s * 0.36, c)
 	draw_circle(p + Vector2(s * 0.30, -s * 0.08), s * 0.36, c)
@@ -210,6 +261,7 @@ func _heart_shape(p: Vector2, s: float, c: Color) -> void:
 		p + Vector2(s * 0.60, -s * 0.04),
 		p + Vector2(0, s * 0.68),
 	]), c)
+	draw_circle(p + Vector2(-s * 0.20, -s * 0.18), s * 0.10, Color(1, 1, 1, c.a * 0.55))
 
 
 func _sparkle(p: Vector2, s: float, c: Color) -> void:
@@ -291,6 +343,16 @@ func _draw() -> void:
 			draw_arc(e["pos"], e["r"] * (0.65 + 0.55 * k), 0, TAU, 28, inner, 2.2, true)
 			if k < 0.35:
 				draw_circle(e["pos"], e["r"] * (0.52 + 0.5 * k), Color(1, 1, 1, 0.24 * (1.0 - k / 0.35)))
+			for pi in range(8):
+				var ang: float = TAU * float(pi) / 8.0 + k * 0.65
+				var pr: float = e["r"] * (1.02 + 0.95 * k)
+				var pc: Color = Ui.ROSE if pi % 2 == 0 else Color(1.0, 0.97, 0.91)
+				pc.a = 0.55 * (1.0 - k)
+				var pp: Vector2 = e["pos"] + Vector2(cos(ang), sin(ang)) * pr
+				if pi % 2 == 0:
+					_heart_shape(pp, e["r"] * 0.11 * (1.0 - k), pc)
+				else:
+					draw_circle(pp, e["r"] * 0.075 * (1.0 - k), pc)
 			c.a = 0.45 * (1.0 - k)
 			draw_circle(e["pos"], e["r"] * (1.0 - k) * 0.9, c)
 		else:
@@ -304,5 +366,16 @@ func _draw() -> void:
 			_heart_shape(sp["pos"], ss, sc)
 		elif sp["kind"] == "star":
 			_star_shape(sp["pos"], ss, sc)
+			_hello_face(sp["pos"], ss, sc)
+		elif sp["kind"] == "bunny":
+			_bunny_shape(sp["pos"], ss, sc)
+		elif sp["kind"] == "drop":
+			draw_circle(sp["pos"], ss * 0.55, sc)
+			draw_colored_polygon(PackedVector2Array([
+				sp["pos"] + Vector2(0, -ss * 1.15),
+				sp["pos"] + Vector2(-ss * 0.42, -ss * 0.15),
+				sp["pos"] + Vector2(ss * 0.42, -ss * 0.15),
+			]), sc)
+			draw_circle(sp["pos"] + Vector2(-ss * 0.15, -ss * 0.10), ss * 0.12, Color(1, 1, 1, sc.a * 0.65))
 		else:
 			draw_circle(sp["pos"], ss * 0.8, sc)

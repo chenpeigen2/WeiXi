@@ -115,14 +115,20 @@ func _draw() -> void:
 		glow.a = 0.14 + 0.06 * (0.5 + 0.5 * sin(_anim_t * 6.0))
 		draw_arc(pos, r * 1.16 * pulse, 0, TAU, 40, glow, 7.0, true)
 		draw_arc(pos, r * 1.05 * pulse, 0, TAU, 40, Ui.SELECTION, 3.5, true)
-		_star(pos + Vector2(0, -r * 1.18 + 2.0 * sin(_anim_t * 4.0)), 4.6, Ui.HEART)
+		# 糖霜圆点沿着选中环慢慢转
+		for pi in range(10):
+			var ang: float = TAU * float(pi) / 10.0 + _anim_t * 0.35
+			var dp: Vector2 = pos + Vector2(cos(ang), sin(ang)) * r * 1.10
+			var da: float = 0.42 + 0.20 * (0.5 + 0.5 * sin(_anim_t * 4.0 + float(pi)))
+			draw_circle(dp, 1.9, Color(1.0, 0.92, 0.96, da))
+		_bunny(pos + Vector2(0, -r * 1.22 + 2.0 * sin(_anim_t * 4.0)), 7.6, Color(1.0, 0.96, 0.92), 1.0)
 		var idx := 0
 		for n in HexGrid.neighbors(selected):
 			if not game.board.has_ball(n):
 				continue
 			var np: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(n), 1.0, origin)
 			var tw: float = 0.40 + 0.24 * (0.5 + 0.5 * sin(_anim_t * 4.0 + float(idx) * 0.8))
-			_star(np + Vector2(r * 0.52, -r * 0.86), 3.2, Color(1.0, 0.66, 0.76, tw))
+			_heart(np + Vector2(r * 0.52, -r * 0.86), 3.5, Ui.ROSE, tw)
 			idx += 1
 		if hover_cell != INVALID_CELL and HexGrid.neighbors(selected).has(hover_cell):
 			var hp2: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(hover_cell), 1.0, origin)
@@ -231,6 +237,40 @@ func _draw_landing(l: Dictionary) -> void:
 			pos + Vector2(side * r * 0.45, r * 0.62 - 24.0 * t),
 			4.0, Ui.ROSE, 0.65 * fade
 		)
+
+
+## 小兔头：选中球顶部的糖霜标记。
+func _bunny(p: Vector2, s: float, c: Color, a: float) -> void:
+	var col := Color(c.r, c.g, c.b, a)
+	var inner := Color(1.0, 0.80, 0.87, a)
+	var ink := Color(0.32, 0.18, 0.25, a)
+	# 奶油贴纸底 + 玫瑰描边，让兔兔从浅色背板上跳出来
+	draw_circle(p, s * 1.18, Color(1.0, 0.98, 0.94, 0.92 * a))
+	draw_arc(p, s * 1.18, 0, TAU, 28, Color(0.92, 0.38, 0.55, 0.38 * a), 1.6, true)
+	draw_circle(p + Vector2(-s * 0.34, -s * 0.78), s * 0.23, col)
+	draw_circle(p + Vector2(s * 0.34, -s * 0.78), s * 0.23, col)
+	draw_circle(p + Vector2(-s * 0.34, -s * 0.78), s * 0.11, inner)
+	draw_circle(p + Vector2(s * 0.34, -s * 0.78), s * 0.11, inner)
+	draw_circle(p, s * 0.53, col)
+	draw_circle(p + Vector2(-s * 0.19, -s * 0.02), maxf(0.8, s * 0.07), ink)
+	draw_circle(p + Vector2(s * 0.19, -s * 0.02), maxf(0.8, s * 0.07), ink)
+	draw_arc(p + Vector2(0, s * 0.10), s * 0.14, 0.15, PI - 0.15, 8, ink, 0.9, true)
+	var blush := Color(1.0, 0.58, 0.70, a * 0.50)
+	draw_circle(p + Vector2(-s * 0.40, s * 0.08), s * 0.09, blush)
+	draw_circle(p + Vector2(s * 0.40, s * 0.08), s * 0.09, blush)
+	# 左耳小蝴蝶结
+	var rose := Color(0.92, 0.38, 0.55, a)
+	draw_colored_polygon(PackedVector2Array([
+		p + Vector2(-s * 0.86, -s * 0.70),
+		p + Vector2(-s * 0.48, -s * 0.58),
+		p + Vector2(-s * 0.80, -s * 0.38),
+	]), rose)
+	draw_colored_polygon(PackedVector2Array([
+		p + Vector2(-s * 0.38, -s * 0.72),
+		p + Vector2(-s * 0.52, -s * 0.48),
+		p + Vector2(-s * 0.28, -s * 0.42),
+	]), rose)
+	draw_circle(p + Vector2(-s * 0.53, -s * 0.56), s * 0.10, Color(1.0, 0.93, 0.88, a))
 
 
 ## 小爱心：棋盘边角的糖霜装饰。
