@@ -89,26 +89,36 @@ static func swap_visuals(a: Vector2, b: Vector2, k: float, revert: bool, r: floa
 	var dir := delta.normalized()
 	var perp := Vector2(-dir.y, dir.x)
 	var arc := 0.0
-	var scale := 1.0
+	var along := 1.0
+	var across := 1.0
 	if revert:
 		var wob: float = sin(3.0 * PI * k) * (1.0 - k)
-		arc = wob * r * 0.22
-		scale = 1.0 + 0.09 * wob
+		arc = wob * r * 0.24
+		along = 1.0 + 0.05 * wob
+		across = 1.0 - 0.035 * wob
 	else:
 		var swell: float = sin(PI * k)
-		arc = swell * r * 0.85
-		scale = 1.0 + 0.16 * swell
+		arc = swell * r * 1.05
+		along = 1.0 + 0.18 * swell
+		across = 1.0 - 0.08 * swell
+	# 按交换方向做轴向挤压/拉伸，但不旋转球体，保持高光方向稳定。
+	var dx: float = absf(dir.x)
+	var dy: float = absf(dir.y)
+	var sx: float = across + (along - across) * dx
+	var sy: float = across + (along - across) * dy
 	return {
 		"a": base[0] + perp * arc,
 		"b": base[1] - perp * arc,
-		"scale": scale,
+		"scale": 1.0 + (along - 1.0) * 0.55,
+		"sx": sx,
+		"sy": sy,
 	}
 
 
-func _draw_swap_ball(pos: Vector2, r: float, color: Color, scale: float, alpha: float) -> void:
+func _draw_swap_ball(pos: Vector2, r: float, color: Color, sx: float, sy: float, alpha: float) -> void:
 	if alpha <= 0.001:
 		return
-	draw_set_transform(pos, 0.0, Vector2(scale, scale))
+	draw_set_transform(pos, 0.0, Vector2(sx, sy))
 	BallDraw.draw_ball(self, Vector2.ZERO, r, color, alpha)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
@@ -162,10 +172,10 @@ func _draw() -> void:
 			if vk <= 0.0:
 				continue
 			var trail: Dictionary = swap_visuals(_swap["a"], _swap["b"], vk, _swap["revert"], _swap["r"])
-			_draw_swap_ball(trail["a"], _swap["r"] * 0.94, _swap["color_a"], float(trail["scale"]) * 0.94, 0.13 / float(j))
-			_draw_swap_ball(trail["b"], _swap["r"] * 0.94, _swap["color_b"], float(trail["scale"]) * 0.94, 0.13 / float(j))
-		_draw_swap_ball(vis["a"], _swap["r"], _swap["color_a"], float(vis["scale"]), 1.0)
-		_draw_swap_ball(vis["b"], _swap["r"], _swap["color_b"], float(vis["scale"]), 1.0)
+			_draw_swap_ball(trail["a"], _swap["r"] * 0.94, _swap["color_a"], float(trail["sx"]) * 0.94, float(trail["sy"]) * 0.94, 0.13 / float(j))
+			_draw_swap_ball(trail["b"], _swap["r"] * 0.94, _swap["color_b"], float(trail["sx"]) * 0.94, float(trail["sy"]) * 0.94, 0.13 / float(j))
+		_draw_swap_ball(vis["a"], _swap["r"], _swap["color_a"], float(vis["sx"]), float(vis["sy"]), 1.0)
+		_draw_swap_ball(vis["b"], _swap["r"], _swap["color_b"], float(vis["sx"]), float(vis["sy"]), 1.0)
 		var mid: Vector2 = (_swap["a"] + _swap["b"]) * 0.5
 		if _swap["revert"]:
 			var no_a: float = 0.28 * sin(PI * k)

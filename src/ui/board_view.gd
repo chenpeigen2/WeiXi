@@ -5,12 +5,14 @@ extends Node2D
 const Ui = preload("res://src/ui/theme.gd")
 const BallDraw = preload("res://src/ui/ball_draw.gd")
 const BoardCamera = preload("res://src/ui/board_camera.gd")
+const HexGrid = preload("res://src/logic/hex_grid.gd")
 const BoardPanel = preload("res://src/ui/board_panel.gd")
 
 const INVALID_CELL := Vector2i(-999, -999)
 
 var game: RefCounted
 var selected := INVALID_CELL
+var hover_cell := INVALID_CELL
 var hidden_cells := {} # 互换动画期间被覆盖层接管、暂停绘制的格子
 var _landings: Array[Dictionary] = []
 
@@ -97,13 +99,34 @@ func _draw() -> void:
 	for landing in _landings:
 		_draw_landing(landing)
 
-	# 三消选中环：外层柔光 + 内层实线
+	# 悬停柔光
+	if hover_cell != INVALID_CELL and hover_cell != selected and game.board.has_ball(hover_cell):
+		var hp: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(hover_cell), 1.0, origin)
+		draw_arc(hp, r * 1.08, 0, TAU, 36, Color(1.0, 0.96, 0.93, 0.65), 2.2, true)
+
+	# 三消选中环 + 相邻目标小星星 + 虚线换位连接
 	if selected != INVALID_CELL and game.board.has_ball(selected):
 		var pos: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(selected), 1.0, origin)
 		var glow := Ui.ACCENT
 		glow.a = 0.18
 		draw_arc(pos, r * 1.16, 0, TAU, 40, glow, 7.0, true)
 		draw_arc(pos, r * 1.05, 0, TAU, 40, Ui.SELECTION, 3.5, true)
+		_star(pos + Vector2(0, -r * 1.18), 4.6, Ui.HEART)
+		for n in HexGrid.neighbors(selected):
+			if not game.board.has_ball(n):
+				continue
+			var np: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(n), 1.0, origin)
+			_star(np + Vector2(r * 0.52, -r * 0.86), 3.2, Color(1.0, 0.66, 0.76, 0.55))
+		if hover_cell != INVALID_CELL and HexGrid.neighbors(selected).has(hover_cell):
+			var hp2: Vector2 = BoardCamera.to_screen(layout.cell_to_pixel(hover_cell), 1.0, origin)
+			draw_dashed_line(pos, hp2, Color(1.0, 0.55, 0.68, 0.70), 2.0, 8.0)
+			draw_arc(hp2, r * 1.12, 0, TAU, 40, Ui.ACCENT, 2.5, true)
+
+
+func set_hover(cell: Vector2i) -> void:
+	if hover_cell != cell:
+		hover_cell = cell
+		queue_redraw()
 
 
 func clear_landings() -> void:

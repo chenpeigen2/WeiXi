@@ -195,17 +195,21 @@ func _process(_delta: float) -> void:
 
 ## 桌面 hover：可点元素显示手型光标，减少“这里能不能点”的猜测。
 func _update_cursor(pos: Vector2) -> void:
-	if shooter.is_flying():
+	if shooter.is_flying() or fx_layer.is_swapping():
+		board_view.set_hover(INVALID_CELL)
 		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 		return
 	var hand := false
 	if color_popup.active:
+		board_view.set_hover(INVALID_CELL)
 		hand = color_popup.hit(pos) >= 0
 	elif BallPicker.hit(pos) >= 0:
+		board_view.set_hover(INVALID_CELL)
 		hand = true
 	else:
 		var c: Vector2i = game.layout.pixel_to_cell(BoardCamera.to_board(pos, 1.0, _cam_origin()))
 		hand = game.board.has_ball(c)
+		board_view.set_hover(c if hand else INVALID_CELL)
 	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if hand else Input.CURSOR_ARROW)
 
 
@@ -282,6 +286,7 @@ func _start_new_game(seed: int, is_daily: bool) -> void:
 	shooter._flight = {}
 	shooter.set_preview(PackedVector2Array(), Vector2.ZERO, game.current_color)
 	board_view.clear_landings()
+	board_view.set_hover(INVALID_CELL)
 	board_view.hidden_cells = {}
 	fx_layer.clear()
 	meta_bar.set_state(daily_mode, sticker_book.count())
@@ -335,6 +340,7 @@ func _fire() -> void:
 		return
 	var cell: Vector2i = tr["cell"]
 	selected = INVALID_CELL
+	board_view.set_hover(INVALID_CELL)
 	var before: Dictionary = game.board.cells.duplicate()
 	var shot_color: int = game.current_color
 	var bounces: int = int(tr.get("bounces", 0))
@@ -389,6 +395,7 @@ func _animated_swap(a: Vector2i, c: Vector2i) -> void:
 	var color_b: Color = Ui.BALL_COLORS[before[c]]
 	var r: float = game.layout.radius * 0.95
 	board_view.selected = INVALID_CELL
+	board_view.set_hover(INVALID_CELL)
 	board_view.hidden_cells = {a: true, c: true}
 	if res["matched"]:
 		# 互换期间先保留完整 before 棋盘，等两球落位后再移除消除球，避免提前出现空洞。

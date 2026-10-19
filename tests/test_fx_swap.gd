@@ -60,3 +60,7 @@ func test_swap_visuals_arc_scale_and_endpoints() -> void:
 	var vr: Dictionary = FxLayer.swap_visuals(A, B, 1.0, true, 20.0)
 	assert_vec_near(vr["a"], A, "无效互换回原位")
 	assert_vec_near(vr["b"], B, "无效互换回原位")
+
+	# 水平互换：沿 x 拉伸、y 收窄，高光不旋转
+	var vh: Dictionary = FxLayer.swap_visuals(Vector2(100, 100), Vector2(200, 100), 0.5, false, 20.0)
+	assert_true(float(vh["sx"]) > float(vh["sy"]), "水平互换沿 x 拉伸")

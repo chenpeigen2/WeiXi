@@ -159,3 +159,14 @@ func test_match3_swap_keeps_board_until_animation_end() -> void:
 	assert_false(node.game.board.has_ball(Vector2i(2, 1)), "落位后才消除")
 	assert_eq(node.board_view.hidden_cells.size(), 0, "隐藏格清理")
 	node.free()
+
+
+func test_board_hover_cell() -> void:
+	var node := _instantiate_main()
+	node.game.board = Board.new(10, 14)
+	node.game.board.set_ball(Vector2i(0, 0), 1)
+	node.board_view.set_hover(Vector2i(0, 0))
+	assert_eq(node.board_view.hover_cell, Vector2i(0, 0), "悬停格记录")
+	node.board_view.set_hover(Vector2i(-999, -999))
+	assert_eq(node.board_view.hover_cell, Vector2i(-999, -999), "悬停清除")
+	node.free()
